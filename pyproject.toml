@@ -23,7 +23,9 @@ classifiers = [
     "Framework::AsyncIO",
     "Typing::Typed"
 ]
-dependencies = []
+dependencies = [
+    "crcmod",
+]
 
 [project.license]
 file = "LICENSE"
