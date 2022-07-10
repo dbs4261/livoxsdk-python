@@ -15,8 +15,15 @@ class DeviceType(enum.IntEnum):
     def is_lidar(self) -> bool:
         return self != DeviceType.Hub
 
+    def __str__(self) -> str:
+        return self.name if self.is_hub() else self.name[len("Lidar"):]
 
-class DeviceState(enum.IntEnum):
+
+def supports_imu(device: DeviceType) -> bool:
+    return device == DeviceType.LidarAvia or DeviceType.LidarHorizon
+
+
+class LidarState(enum.IntEnum):
     Init = 0
     Normal = 1
     PowerSaving = 2

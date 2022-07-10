@@ -20,11 +20,11 @@ class DeviceInfo(StructureType):
     firmware_version: livoxsdk.FirmwareVersion
 
     @property
-    def state(self) -> livoxsdk.enums.DeviceState:
+    def state(self) -> livoxsdk.enums.LidarState:
         raise NotImplementedError
 
     @state.setter
-    def state(self, val: typing.Union[livoxsdk.enums.DeviceState, livoxsdk.enums.LidarMode]) -> None:
+    def state(self, val: typing.Union[livoxsdk.enums.LidarState, livoxsdk.enums.LidarMode]) -> None:
         raise NotImplementedError
 
     @property

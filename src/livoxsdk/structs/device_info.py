@@ -30,11 +30,11 @@ class DeviceInfo(StructureType):
     ]
 
     @property
-    def state(self) -> livoxsdk.enums.DeviceState:
-        return livoxsdk.enums.DeviceState(getattr(self, "state_c"))
+    def state(self) -> livoxsdk.enums.LidarState:
+        return livoxsdk.enums.LidarState(getattr(self, "state_c"))
 
     @state.setter
-    def state(self, val: typing.Union[livoxsdk.enums.DeviceState, livoxsdk.enums.LidarMode]) -> None:
+    def state(self, val: typing.Union[livoxsdk.enums.LidarState, livoxsdk.enums.LidarMode]) -> None:
         setattr(self, "state_c", val.value)
 
     @property

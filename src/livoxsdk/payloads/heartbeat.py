@@ -14,11 +14,11 @@ class HeartbeatResponsePayload(StructureType):
     )
 
     @property
-    def state(self) -> livoxsdk.enums.devices.DeviceState:
-        return livoxsdk.enums.devices.DeviceState(getattr(self, "state_c"))
+    def state(self) -> livoxsdk.enums.devices.LidarState:
+        return livoxsdk.enums.devices.LidarState(getattr(self, "state_c"))
 
     @state.setter
-    def state(self, val: livoxsdk.enums.devices.DeviceState) -> None:
+    def state(self, val: livoxsdk.enums.devices.LidarState) -> None:
         setattr(self, "state_c", ctypes.c_uint8(val.value))
 
     @property
