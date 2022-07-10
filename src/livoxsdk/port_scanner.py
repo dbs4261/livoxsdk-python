@@ -6,9 +6,9 @@ import typing
 
 import livoxsdk.enums.messages
 import livoxsdk.enums.devices
-import livoxsdk.structs.Packet
+import livoxsdk.structs.packet
 import livoxsdk.crc
-import livoxsdk.structs.Payloads
+import livoxsdk.payloads
 import livoxsdk.logging_helpers
 
 import logging

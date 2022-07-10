@@ -4,13 +4,13 @@ import typing
 import livoxsdk.crc
 
 if __name__ == "__main__":
-    from livoxsdk.structs.StructureType import StructureType
-    from livoxsdk.structs.Preamble import Preamble
-    from livoxsdk.structs.CommandHeader import CommandHeader
+    from livoxsdk.structs.structure_type import StructureType
+    from livoxsdk.structs.preamble import Preamble
+    from livoxsdk.structs.command_header import CommandHeader
 else:
-    from .StructureType import StructureType
-    from .Preamble import Preamble
-    from .CommandHeader import CommandHeader
+    from .structure_type import StructureType
+    from .preamble import Preamble
+    from .command_header import CommandHeader
 
 
 class PacketHeader(StructureType):

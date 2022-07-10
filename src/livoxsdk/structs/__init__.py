@@ -1,3 +1,3 @@
-from .StructureType import StructureType
-from .Preamble import Preamble
-from .CommandHeader import CommandHeader
+from .structure_type import StructureType
+from .preamble import Preamble
+from .command_header import CommandHeader

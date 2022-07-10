@@ -1,5 +1,5 @@
 import ctypes
-from livoxsdk.structs.StructureType import StructureType
+from livoxsdk.structs.structure_type import StructureType
 import livoxsdk.enums.devices
 
 

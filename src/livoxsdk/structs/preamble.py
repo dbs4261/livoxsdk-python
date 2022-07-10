@@ -6,7 +6,7 @@ import livoxsdk.crc
 if __name__ == "__main__":
     from livoxsdk.structs import StructureType
 else:
-    from .StructureType import StructureType
+    from .structure_type import StructureType
 
 
 class Preamble(StructureType):
