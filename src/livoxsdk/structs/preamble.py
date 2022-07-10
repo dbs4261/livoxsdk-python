@@ -1,12 +1,7 @@
 import ctypes
 
-import livoxsdk.enums.messages
-import livoxsdk.crc
-
-if __name__ == "__main__":
-    from livoxsdk.structs import StructureType
-else:
-    from .structure_type import StructureType
+import livoxsdk
+from livoxsdk.structs.structure_type import StructureType
 
 
 class Preamble(StructureType):
@@ -15,14 +10,14 @@ class Preamble(StructureType):
         ("packet_type_c", "packet_type"),
         ("_length", "length"),
     )
-    _fields_ = [
+    _fields_ = (
         ("sof", ctypes.c_uint8),
         ("version", ctypes.c_uint8),
         ("_length", ctypes.c_uint16),
-        ("packet_type_c", ctypes.c_uint8),  # livoxsdk.enums.messages.MessageType
+        ("packet_type_c", ctypes.c_uint8),
         ("seq_num", ctypes.c_uint16),
         ("preamble_crc", ctypes.c_uint16),
-    ]
+    )
     _defaults_ = {
         "sof": 170,
         "version": 1,
@@ -34,11 +29,11 @@ class Preamble(StructureType):
         setattr(self, "preamble_crc", self.crc())
 
     @property
-    def packet_type(self) -> livoxsdk.enums.messages.MessageType:
-        return livoxsdk.enums.messages.MessageType(getattr(self, "packet_type_c"))
+    def packet_type(self) -> livoxsdk.enums.MessageType:
+        return livoxsdk.enums.MessageType(getattr(self, "packet_type_c"))
 
     @packet_type.setter
-    def packet_type(self, val: livoxsdk.enums.messages.MessageType) -> None:
+    def packet_type(self, val: livoxsdk.enums.MessageType) -> None:
         setattr(self, "packet_type_c", ctypes.c_uint8(val))
 
     @property
@@ -49,7 +44,7 @@ class Preamble(StructureType):
     def length(self, val: ctypes.c_uint16) -> None:
         setattr(self, "_length", val)
 
-    def crc(self):
+    def crc(self) -> int:
         return livoxsdk.crc.crc16Func(bytes(self)[:getattr(type(self), "preamble_crc").offset])
 
     def valid(self) -> bool:
