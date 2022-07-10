@@ -11,47 +11,141 @@ import livoxsdk
 
 logger = livoxsdk.logging_helpers.logger.getChild("Device")
 
+_ProtocolT = typing.TypeVar("_ProtocolT", bound=asyncio.DatagramProtocol)
+async def _FindDatagramEndpoint(loop: asyncio.AbstractEventLoop,
+        protocol_factory: typing.Callable[[], _ProtocolT],
+        local_addr: typing.Optional[typing.Tuple[str, int]] = None,
+        find_available_port: bool = False, **kwargs) -> tuple[int, asyncio.DatagramTransport, _ProtocolT]:
+    kwargs["local_addr"] = local_addr
+    if not find_available_port or local_addr is None:
+        transport, protocol = await loop.create_datagram_endpoint(protocol_factory, **kwargs)
+    else:
+        while True:
+            try:
+                transport, protocol = await loop.create_datagram_endpoint(protocol_factory, **kwargs)
+            except OSError:
+                logger.getChild("FindDatagramEndpoint").debug(
+                    "Could not create port on {}:{}".format(*kwargs["local_addr"]))
+                kwargs["local_addr"] = (kwargs["local_addr"][0], kwargs["local_addr"][1] + 1)
+            break
+        logger.getChild("FindDatagramEndpoint").debug(
+            "Created endpoint at {}:{}".format(*kwargs["local_addr"]))
+    port: int = transport.get_extra_info("sockname")[1]
+    return port, transport, protocol
+
 
 class Device:
     def __init__(self, device_ip_address: ipaddress.IPv4Address,
-                 command_port: livoxsdk.Port, data_port: livoxsdk.Port,
-                 event_loop: typing.Optional[asyncio.AbstractEventLoop] = None,
+                 command_port: typing.Optional[livoxsdk.Port] = None,
+                 data_port: typing.Optional[livoxsdk.Port] = None,
                  sensor_port: typing.Optional[livoxsdk.Port] = None,
-                 host_ip_address: typing.Optional[ipaddress.IPv4Address] = None,
-                 default_timeout: datetime.timedelta = datetime.timedelta(milliseconds=500)):
-        self.device_ip_address: ipaddress.IPv4Address = device_ip_address
-        self.host_ip_address: ipaddress.IPv4Address = host_ip_address
-        if self.host_ip_address is None:
-            self.host_ip_address = livoxsdk.utilities.HostIPForDeviceIp(self.device_ip_address)
-        if self.host_ip_address is None:
-            raise ValueError("Could not automatically determine host address "
-                             "for communicating with {}".format(self.device_ip_address))
+                 gateway_ip_address: typing.Optional[ipaddress.IPv4Address] = None,
+                 default_timeout: datetime.timedelta = datetime.timedelta(milliseconds=500),
+                 event_loop: typing.Optional[asyncio.AbstractEventLoop] = None):
         self.default_timeout: datetime.timedelta = default_timeout
-        self.command_port: livoxsdk.Port = command_port
-        self.data_port: livoxsdk.Port = data_port
-        self.sensor_port: livoxsdk.Port = sensor_port if sensor_port is not None else 0
+        self._device_ip_address: ipaddress.IPv4Address = device_ip_address
+        self._gateway_ip_address: ipaddress.IPv4Address = gateway_ip_address
+        if self._gateway_ip_address is None:
+            self._gateway_ip_address = livoxsdk.utilities.HostIPForDeviceIp(self._device_ip_address)
+        if self._gateway_ip_address is None:
+            raise ValueError("Could not automatically determine host gateway address "
+                             "for communicating with {}".format(self._device_ip_address))
+        self._command_port: livoxsdk.Port = command_port if command_port is not None else livoxsdk._default_command_port
+        self._data_port: livoxsdk.Port = data_port if data_port is not None else livoxsdk._default_data_port
+        self._sensor_port: typing.Optional[livoxsdk.Port] = sensor_port if sensor_port is not None else 0
         self._loop: typing.Optional[asyncio.AbstractEventLoop] = event_loop
+
         self._command_protocol: typing.Optional[livoxsdk.CommandProtocol] = None
         self._data_protocol: typing.Optional[livoxsdk.DataProtocol] = None
         self._sensor_protocol: typing.Optional[livoxsdk.SensorProtocol] = None
+
         self._heartbeat_task: typing.Optional[asyncio.Task] = None
+        self._state_update_future: typing.Optional[typing.Tuple[livoxsdk.enums.LidarState, asyncio.Future]] = None
+
         self._firmware_version: typing.Optional[livoxsdk.FirmwareVersion] = None
+        self._device_state: livoxsdk.enums.LidarState = livoxsdk.enums.LidarState.Unknown
+        self._device_type: typing.Optional[livoxsdk.enums.DeviceType] = None
+        self._broadcast_code: livoxsdk.BroadcastCode = livoxsdk.BroadcastCode()
+        self._coordinate_system: typing.Optional[livoxsdk.enums.CoordinateSystem] = None
+        self._sampling: bool = False
+
+    # <editor-fold desc="Read Only Properties">
+    @property
+    def device_ip_address(self) -> ipaddress.IPv4Address:
+        return self._device_ip_address
+
+    @property
+    def gateway_ip_address(self) -> ipaddress.IPv4Address:
+        return self._gateway_ip_address
+
+    @property
+    def command_port(self) -> livoxsdk.Port:
+        return self._command_port
+
+    @property
+    def data_port(self) -> livoxsdk.Port:
+        return self._data_port
+
+    @property
+    def sensor_port(self) -> typing.Optional[livoxsdk.Port]:
+        return self._sensor_port
+
+    @property
+    def firmware_version(self) -> typing.Optional[livoxsdk.FirmwareVersion]:
+        return self._firmware_version
+
+    @property
+    def state(self) -> livoxsdk.enums.LidarState:
+        return self._device_state
+
+    @property
+    def coordinate_system(self) -> typing.Optional[livoxsdk.enums.CoordinateSystem]:
+        return self._coordinate_system
+
+    @property
+    def broadcast_code(self) -> livoxsdk.BroadcastCode:
+        return self._broadcast_code
+
+    @property
+    def device_type(self) -> livoxsdk.enums.DeviceType:
+        if self._device_type is None:
+            raise RuntimeError("Device is not yet initialized. Use async with `livoxsdk.Device() as _:`")
+        return self._device_type
+
+    # </editor-fold>
+
+    async def _update_device_conn_info(self):
+        broadcast_future = self._loop.create_future()
+        transport, _ = await self._loop.create_datagram_endpoint(
+            lambda: livoxsdk.BroadcastProtocol(broadcast_future, self.device_ip_address),
+            family=socket.AF_INET, reuse_port=True, local_addr=("0.0.0.0", livoxsdk.scan_port))
+        broadcast_payload: livoxsdk.payloads.BroadcastPayload = \
+            await asyncio.wait_for(broadcast_future, 2 * self.default_timeout.total_seconds())
+        transport.close()
+        self._broadcast_code = broadcast_payload.broadcast_code
+        self._device_type = broadcast_payload.device_type
+        logger.info("Updated device info for {}: Broadcast Code: {} Device Type: {}".format(
+            self.device_ip_address, self._broadcast_code, self._device_type))
 
     async def __aenter__(self) -> "Device":
         if self._loop is None:
             self._loop = asyncio.get_running_loop()
-        _, self._command_protocol = await self._loop.create_datagram_endpoint(
-            lambda: livoxsdk.CommandProtocol(self.command_port), family=socket.AF_INET,
-            reuse_port=True, local_addr=(str(self.host_ip_address), self.command_port)
+        device_info_future = self._loop.create_task(self._update_device_conn_info(), name="UpdateDeviceConnectionInfo")
+        self._command_port, _, self._command_protocol = await _FindDatagramEndpoint(self._loop,
+                lambda: livoxsdk.CommandProtocol(self.command_port), family=socket.AF_INET,
+                reuse_port=False, local_addr=(str(self.gateway_ip_address), self._command_port)
         )
-        _, self._data_protocol = await self._loop.create_datagram_endpoint(
-            lambda: livoxsdk.DataProtocol(self.data_port), family=socket.AF_INET,
-            reuse_port=True, local_addr=(str(self.host_ip_address), self.data_port)
+        self._data_port, _, self._data_protocol = await _FindDatagramEndpoint(self._loop,
+                lambda: livoxsdk.DataProtocol(self.data_port), family=socket.AF_INET,
+                reuse_port=False, local_addr=(str(self.gateway_ip_address), self._data_port)
         )
-        if self.sensor_port != 0:
-            _, self._sensor_protocol = await self._loop.create_datagram_endpoint(
-                lambda: livoxsdk.SensorProtocol(self.sensor_port), family=socket.AF_INET,
-                reuse_port=True, local_addr=(str(self.host_ip_address), self.sensor_port)
+        await device_info_future
+        if self.sensor_port is not None:
+            if self._sensor_port <= 0:
+                self._sensor_port = livoxsdk._default_sensor_port
+            self._sensor_port, _, self._sensor_protocol = await _FindDatagramEndpoint(self._loop,
+                    lambda: livoxsdk.SensorProtocol(self.sensor_port), family=socket.AF_INET,
+                    reuse_port=False, local_addr=(str(self.gateway_ip_address), self.sensor_port)
             )
         return self
 
@@ -100,12 +194,7 @@ class Device:
 
     async def _heartbeat_function(self, interval: datetime.timedelta = datetime.timedelta(seconds=1),
                                   timeout: typing.Optional[datetime.timedelta] = None):
-        heartbeat_packet = livoxsdk.structs.Packet(
-            header=livoxsdk.structs.PacketHeader(
-                packet_type=livoxsdk.enums.messages.MessageType.CMD,
-                command_type=livoxsdk.enums.messages.GeneralCommandId.Heartbeat
-            )
-        )
+        heartbeat_packet = livoxsdk.structs.Packet.CreateCommand(livoxsdk.enums.messages.GeneralCommandId.Heartbeat)
         logger.getChild("heartbeat").info("Beginning heartbeat...")
         while True:
             response = await self._send_message_response(heartbeat_packet, caller="heartbeat", timeout=timeout)
@@ -115,20 +204,22 @@ class Device:
                 logger.getChild("heartbeat").warning("{} responded incorrectly to heartbeat with ret_code: {}".format(
                     self.device_ip_address, payload))
             else:
-                if payload.state == livoxsdk.enums.devices.DeviceState.Error:
+                if payload.state == livoxsdk.enums.devices.LidarState.Error:
                     raise livoxsdk.errors.LivoxAbnormalStatusError(
                         "Heartbeat error {} with state {} received from {}\n"
                         "Details: feature: {} progress: {}".format(payload.ret_code, payload.state,
                             self.device_ip_address, payload.feature, payload.error_union.progress))
+                else:
+                    if self._device_state != payload.state:
+                        logger.getChild("hearbeat").info(
+                            "Device at {} updated state to {}".format(self.device_ip_address, payload.state))
+                    self._device_state = payload.state
+                    if self._state_update_future is not None and self._state_update_future[0] == payload.state:
+                        self._state_update_future[1].set_result(True)
             await asyncio.sleep(interval.total_seconds())
 
     async def query(self, timeout: typing.Optional[datetime.timedelta] = None) -> None:
-        query_packet = livoxsdk.structs.Packet(
-            header=livoxsdk.structs.PacketHeader(
-                packet_type=livoxsdk.enums.MessageType.CMD,
-                command_type=livoxsdk.enums.GeneralCommandId.DeviceInfo
-            )
-        )
+        query_packet = livoxsdk.structs.Packet.CreateCommand(livoxsdk.enums.GeneralCommandId.DeviceInfo)
         response = await self._send_message_response(query_packet, caller="query", timeout=timeout)
         payload: livoxsdk.payloads.QueryResponsePayload = response.get_payload()
         if payload.ret_code != 0:
@@ -136,16 +227,14 @@ class Device:
         self._firmware_version = payload.firmware_version
 
     async def connect(self, timeout: typing.Optional[datetime.timedelta] = None) -> ctypes.c_uint8:
-        connection_packet = livoxsdk.structs.Packet(header=livoxsdk.structs.PacketHeader(
-                packet_type=livoxsdk.enums.MessageType.CMD,
-                command_type=livoxsdk.enums.GeneralCommandId.Handshake
-            ), payload=livoxsdk.payloads.ConnectionRequestPayload(
-                ip_address=self.host_ip_address, command_port=self.command_port,
+        connection_packet = livoxsdk.structs.Packet.CreateCommand(livoxsdk.enums.GeneralCommandId.Handshake,
+            livoxsdk.payloads.ConnectionRequestPayload(
+                ip_address=self.gateway_ip_address, command_port=self.command_port,
                 data_port=self.data_port, sensor_port=self.sensor_port,
             )
         )
         logger.getChild("connect").info("Sending connection request from {} to {}:{} | (cmd: {}, data: {}{})".format(
-            self.host_ip_address, self.device_ip_address, livoxsdk.control_port, self.command_port, self.data_port,
+            self.gateway_ip_address, self.device_ip_address, livoxsdk.control_port, self.command_port, self.data_port,
             "" if self.sensor_port is None else ", sensor: {}".format(self.sensor_port)))
         response = await self._send_message_response(connection_packet, caller="connect", timeout=timeout)
         ret: ctypes.c_uint8 = response.get_payload()
@@ -155,15 +244,11 @@ class Device:
             logger.info("Successfully connected to {}".format(self.device_ip_address))
         self._heartbeat_task = asyncio.get_running_loop().create_task(
             self._heartbeat_function(), name="{} Heartbeat".format(self.device_ip_address))
+        await self.query(timeout=timeout)
         return ret
 
     async def disconnect(self, timeout: typing.Optional[datetime.timedelta] = None) -> ctypes.c_uint8:
-        disconnect_packet = livoxsdk.structs.Packet(
-            header=livoxsdk.structs.PacketHeader(
-                packet_type=livoxsdk.enums.MessageType.CMD,
-                command_type=livoxsdk.enums.GeneralCommandId.Disconnect
-            )
-        )
+        disconnect_packet = livoxsdk.structs.Packet.CreateCommand(livoxsdk.enums.GeneralCommandId.Disconnect)
         response = await self._send_message_response(disconnect_packet, caller="disconnect", timeout=timeout)
         ret: ctypes.c_uint8 = response.get_payload()
         if ret.value != 0:
@@ -172,45 +257,35 @@ class Device:
             logger.info("Successfully disconnect from {}".format(self.device_ip_address))
         return ret
 
-    @property
-    def firmware_version(self) -> typing.Optional[livoxsdk.FirmwareVersion]:
-        return self._firmware_version
+    async def reboot(self, timeout: typing.Optional[datetime.timedelta] = None):
+        reboot_packet = livoxsdk.structs.Packet.CreateCommand(livoxsdk.enums.GeneralCommandId.RebootDevice)
+        response = await self._send_message_response(reboot_packet, caller="reboot", timeout=timeout)
+        # TODO
+        return
 
-    @property
-    def mode(self) -> livoxsdk.enums.devices.DeviceState: ...
+    async def ip_info(self, timeout: typing.Optional[datetime.timedelta] = None):
+        ip_info_packet = livoxsdk.structs.Packet.CreateCommand(livoxsdk.enums.GeneralCommandId.RebootDevice)
+        response = await self._send_message_response(ip_info_packet, caller="ip_info", timeout=timeout)
+        # TODO
+        return
 
-    @mode.setter
-    def mode(self, state: livoxsdk.enums.devices.LidarMode): ...
+    async def set_coordinate_system(self, coord: livoxsdk.enums.CoordinateSystem,
+                                    timeout: typing.Optional[datetime.timedelta] = None):
+        coordinate_system_packet = livoxsdk.structs.Packet.CreateCommand(
+            livoxsdk.enums.GeneralCommandId.CoordinateSystem)
+        response = await self._send_message_response(
+            coordinate_system_packet, caller="coordinate_system", timeout=timeout)
+        # TODO
+        self._coordinate_system = coord
+        return
 
-    @property
-    def data(self) -> bool: ...
+    async def sampling(self, sampling_state: bool, timeout: typing.Optional[datetime.timedelta] = None):
+        sampling_packet = livoxsdk.structs.Packet.CreateCommand(livoxsdk.enums.GeneralCommandId.ControlSample,
+            payload=ctypes.c_uint8(int(sampling_state)))
+        response = await self._send_message_response(sampling_packet, caller="sampling", timeout=timeout)
+        # TODO
+        self._sampling = sampling_state
+        return
 
-    @data.setter
-    def data(self, state: bool): ...
-
-    @property
-    def coordinate_system(self) -> livoxsdk.enums.CoordinateSystem: ...
-
-    @coordinate_system.setter
-    def coordinate_system(self, val: livoxsdk.enums.CoordinateSystem): ...
-
-    @property
-    def extrinsics(self) -> livoxsdk.structs.Extrinsics: ...
-
-    @extrinsics.setter
-    def extrinsics(self, val: livoxsdk.structs.Extrinsics): ...
-
-    @property
-    def rain_fog_suppression(self) -> bool: ...
-
-    @rain_fog_suppression.setter
-    def rain_fog_suppresssion(self, val: bool): ...
-
-    @property
-    def sensor_rate(self): ...
-
-    @sensor_rate.setter
-    def sensor_rate(self, val): ...
-
-    @property
-    def broadcast_code(self) -> livoxsdk.BroadcastCode: ...
+    def is_sampling(self) -> bool:
+        return self._sampling

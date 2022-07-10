@@ -24,15 +24,14 @@ class DeviceConnectionInfo:
     port: livoxsdk.Port
 
 
-class PortScanner(asyncio.DatagramProtocol):
-    def __init__(self, devices_future: asyncio.Future, port: livoxsdk.Port = livoxsdk.Port(65000)):
+class PortScannerProtocol(asyncio.DatagramProtocol):
+    def __init__(self, devices_future: asyncio.Future):
         self.devices_future: asyncio.Future = devices_future
-        self.port = port
         self.found_devices: typing.Set[DeviceConnectionInfo] = set()
 
     def datagram_received(self, data: bytes, addr: typing.Tuple[str, int]) -> None:
         logger.getChild("DatagramReceived").debug("{} {}".format(data.hex(), addr))
-        if addr[1] == self.port:
+        if addr[1] == livoxsdk.control_port:
             packet = livoxsdk.structs.Packet.from_buffer_copy(data)
             if not packet.valid():
                 raise livoxsdk.crc.CrcChecksumError("Invalid packet encountered during port scan")
@@ -44,6 +43,8 @@ class PortScanner(asyncio.DatagramProtocol):
                                               broadcast_payload.device_type, ipaddress.IPv4Address(addr[0]),
                                               livoxsdk.Port(addr[1]))
                 self.found_devices.add(device)
+        else:
+            logger.debug("Received packet from unexpected source {}:{} | {}".format(*addr, data.hex()))
 
     def connection_lost(self, exc: typing.Optional[Exception]) -> None:
         if exc is not None:
@@ -61,7 +62,7 @@ async def scan_for_devices(scan_time: datetime.timedelta) -> typing.Set[DeviceCo
     devices_future = loop.create_future()
     logger.info("Scanning for Livox devices...")
     transport, protocol = await loop.create_datagram_endpoint(
-        lambda: PortScanner(devices_future), family=socket.AF_INET, allow_broadcast=True,
+        lambda: PortScannerProtocol(devices_future), family=socket.AF_INET, allow_broadcast=True,
         reuse_port=True, local_addr=("0.0.0.0", livoxsdk.scan_port))
     try:
         await asyncio.sleep(scan_time.total_seconds())

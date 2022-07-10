@@ -8,9 +8,9 @@ logger = livoxsdk.logging_helpers.logger.getChild("SensorProtocol")
 
 
 class SensorProtocol(asyncio.DatagramProtocol):
-    def __init__(self, port: livoxsdk.Port):
-        self.port = port
+    def __init__(self, port: livoxsdk.Port, sensor_callback: typing.Callable[[bytes], None] = None):
         self.transport: typing.Optional[asyncio.DatagramTransport] = None
+        self.sensor_callback = sensor_callback
 
     def connection_made(self, transport: asyncio.DatagramTransport) -> None:
         logger.getChild("ConnectionMade").debug("Connected To: {}:{}".format(
@@ -22,7 +22,7 @@ class SensorProtocol(asyncio.DatagramProtocol):
 
     def datagram_received(self, data: bytes, addr: typing.Tuple[str, int]) -> None:
         logger.getChild("DatagramReceived").debug("{} {}".format(data.hex(), addr))
-        if addr[1] == self.port:
+        if addr[1] == livoxsdk.control_port:
             logger.getChild("DatagramReceived").debug("Received packet {} from {}:{}".format(data.hex(), *addr))
         else:
             logger.getChild("DatagramReceived").debug("Overheard packet {} from {}:{}".format(data.hex(), *addr))

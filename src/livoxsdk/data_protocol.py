@@ -10,7 +10,6 @@ logger = livoxsdk.logging_helpers.logger.getChild("DataProtocol")
 
 class DataProtocol(asyncio.DatagramProtocol):
     def __init__(self, port: livoxsdk.Port):
-        self.port = port
         self.transport: typing.Optional[asyncio.DatagramTransport] = None
 
     def connection_made(self, transport: asyncio.DatagramTransport) -> None:
@@ -23,7 +22,7 @@ class DataProtocol(asyncio.DatagramProtocol):
 
     def datagram_received(self, data: bytes, addr: typing.Tuple[str, int]) -> None:
         logger.getChild("DatagramReceived").debug("{} {}".format(data.hex(), addr))
-        if addr[1] == self.port:
+        if addr[1] == livoxsdk.control_port:
             logger.getChild("DatagramReceived").debug("Received packet {} from {}:{}".format(data.hex(), *addr))
         else:
             logger.getChild("DatagramReceived").debug("Overheard packet {} from {}:{}".format(data.hex(), *addr))

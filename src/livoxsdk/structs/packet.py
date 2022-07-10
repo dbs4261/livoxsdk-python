@@ -51,6 +51,12 @@ class Packet:
         else:
             self._packet_crc = ctypes.c_uint32(crc)
 
+    @staticmethod
+    def CreateCommand(command_type: livoxsdk.enums.CommandId,
+                      payload: typing.Union[bytes, bytearray, typing.SupportsBytes] = bytes()) -> "Packet":
+        return Packet(header=PacketHeader(packet_type=livoxsdk.enums.MessageType.CMD,
+                                          command_type=command_type), payload=payload)
+
     def __bytes__(self) -> bytes:
         return bytes(self.header) + self.raw_payload + bytes(self._packet_crc)
 

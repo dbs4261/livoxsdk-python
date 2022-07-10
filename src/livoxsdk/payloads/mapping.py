@@ -3,7 +3,7 @@ import typing
 
 from livoxsdk import payloads
 from livoxsdk.structs.structure_type import StructureType
-from livoxsdk.enums.messages import MessageType, CommandId, GeneralCommandId
+from livoxsdk.enums.messages import MessageType, CommandId, GeneralCommandId, LidarCommandId
 
 AllCLiterals: typing.Type = typing.Union[
     ctypes.c_ubyte,
@@ -30,4 +30,6 @@ payload_mapping: typing.Dict[PacketTypeEnum, typing.Union[None, AllCLiterals, ty
     (MessageType.ACK, GeneralCommandId.Disconnect): ctypes.c_uint8,
     (MessageType.ACK, GeneralCommandId.Heartbeat): payloads.HeartbeatResponsePayload,
     (MessageType.ACK, GeneralCommandId.DeviceInfo): payloads.QueryResponsePayload,
+    (MessageType.ACK, GeneralCommandId.ControlSample): ctypes.c_uint8,
+    (MessageType.ACK, LidarCommandId): ctypes.c_uint8,
 }

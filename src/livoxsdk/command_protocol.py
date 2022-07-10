@@ -6,6 +6,12 @@ import livoxsdk
 
 logger = livoxsdk.logging_helpers.logger.getChild("CommandProtocol")
 
+AbnormalStatusHandler: typing.Type = typing.Callable[[typing.Tuple[str, int], livoxsdk.structs.Packet], typing.Coroutine]
+
+
+async def default_abnormal_status_handler(addr: typing.Tuple[str, int], packet: livoxsdk.structs.Packet) -> None:
+    raise livoxsdk.errors.LivoxAbnormalStatusError("{}:{} raw_payload:\n{}".format(*addr, packet.raw_payload))
+
 
 class CommandProtocol(asyncio.DatagramProtocol):
     def __init__(self, port: livoxsdk.Port) -> None:
@@ -13,8 +19,9 @@ class CommandProtocol(asyncio.DatagramProtocol):
         self.transport: typing.Optional[asyncio.DatagramTransport] = None
         self.response_future_table: typing.MutableMapping[livoxsdk.enums.CommandId,
             asyncio.Future[livoxsdk.structs.Packet]] = dict()
-        self.message_callback_table: typing.MutableMapping[livoxsdk.enums.CommandId,
-            typing.Callable[[livoxsdk.structs.Packet], typing.Coroutine]] = dict()
+        self.message_callback_table: typing.MutableMapping[livoxsdk.enums.CommandId, AbnormalStatusHandler] = dict()
+        self.message_callback_table[livoxsdk.enums.GeneralCommandId.PushAbnormalState] = \
+            default_abnormal_status_handler
 
     def connection_made(self, transport: asyncio.DatagramTransport) -> None:
         logger.getChild("ConnectionMade").debug("Connected To: {}:{}".format(

@@ -52,6 +52,11 @@ class Packet(livoxsdk.BinarySerializable):
                  crc: typing.Optional[int] = None):
         raise NotImplementedError
 
+    @staticmethod
+    def CreateCommand(command_type: livoxsdk.enums.CommandId,
+                      payload: typing.Union[bytes, bytearray, typing.SupportsBytes] = bytes()) -> "Packet":
+        raise NotImplementedError
+
     def __bytes__(self) -> bytes:
         raise NotImplementedError
 
