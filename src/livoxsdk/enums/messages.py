@@ -1,7 +1,6 @@
 import enum
 import typing
 
-
 class MessageType(enum.IntEnum):
     CMD = 0  # requires response from the receiver
     Request = CMD
@@ -76,3 +75,9 @@ class HubCommandId(enum.IntEnum):
 
 
 CommandId = typing.Union[GeneralCommandId, LidarCommandId, HubCommandId]
+
+command_id_map: typing.Dict[CommandSet, typing.Type] = {
+    CommandSet.General: GeneralCommandId,
+    CommandSet.Hub: HubCommandId,
+    CommandSet.Lidar: LidarCommandId,
+}
