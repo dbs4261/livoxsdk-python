@@ -1,10 +1,10 @@
 import ctypes
 import typing
 
-import livoxsdk.constants
+import livoxsdk
 
-BaseStructureType: typing.Type = ctypes.LittleEndianStructure \
-    if livoxsdk.constants.endianness == "little" else ctypes.BigEndianStructure
+BaseStructureType: typing.Type[typing.Union[ctypes.Structure, livoxsdk.BinarySerializable, typing.SupportsBytes]] =\
+    ctypes.LittleEndianStructure if livoxsdk.endianness == "little" else ctypes.BigEndianStructure
 
 
 class StructureType(BaseStructureType):
