@@ -25,6 +25,7 @@ classifiers = [
 ]
 dependencies = [
     "crcmod",
+    "netifaces",
 ]
 
 [project.license]
