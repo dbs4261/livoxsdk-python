@@ -1,10 +1,11 @@
 import ctypes
+import typing
+
+import livoxsdk
 from livoxsdk.structs.structure_type import StructureType
-import livoxsdk.enums.devices
 
 
-def SerialNumberLength() -> int:
-    return 14
+serial_number_length: typing.Final[int] = 14
 
 
 class BroadcastCode(StructureType):
@@ -15,7 +16,7 @@ class BroadcastCode(StructureType):
         ("_null", None),
     )
     _fields_ = (
-        ("serial_c", ctypes.c_char * SerialNumberLength()),
+        ("serial_c", ctypes.c_char * serial_number_length),
         ("range_code_c", ctypes.c_char),
         ("_null", ctypes.c_char),
     )
