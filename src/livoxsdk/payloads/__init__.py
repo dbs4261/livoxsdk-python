@@ -1,6 +1,6 @@
 import typing
 
-from .broadcast import BroadcastCode, BroadcastPayload, serial_number_length
+from .broadcast import BroadcastPayload
 from .connection import ConnectionRequestPayload
 from .heartbeat import HeartbeatResponsePayload
 from .query import QueryResponsePayload, FirmwareVersion

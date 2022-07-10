@@ -16,6 +16,7 @@ from . import enums
 from . import utilities
 from .binary_serializable import BinarySerializable, BinaryMappable
 from . import structs
+from .structs import BroadcastCode
 from . import payloads
 from .payloads import FirmwareVersion
 from . import port_scanner

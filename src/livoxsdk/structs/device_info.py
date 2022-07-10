@@ -4,6 +4,7 @@ import typing
 import livoxsdk
 from livoxsdk.structs.structure_type import StructureType
 from livoxsdk.structs.status import StatusUnion
+from livoxsdk.structs.broadcast_code import BroadcastCode
 
 
 class DeviceInfo(StructureType):
@@ -13,7 +14,7 @@ class DeviceInfo(StructureType):
         ("feature_c", "feature"),
     )
     _fields_ = [
-        ("broadcast_code", livoxsdk.BroadcastCode),
+        ("broadcast_code", BroadcastCode),
         ("handle", ctypes.c_uint8),
         ("slot", ctypes.c_uint8),
         ("id", ctypes.c_uint8),
