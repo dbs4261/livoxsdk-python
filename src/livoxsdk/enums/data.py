@@ -62,3 +62,12 @@ class PointDataType(enum.Enum):
 class ImuFreq(enum.Enum):
     Freq0Hz = enum.auto()
     Freq200Hz = enum.auto()
+
+
+class TimestampType(enum.IntEnum):
+    NoSync = 0
+    Ptp = 1
+    Rsvd = 2
+    PpsGps = 3
+    Pps = 4
+    Unknown = 5
