@@ -4,7 +4,8 @@ import typing
 import livoxsdk
 from livoxsdk.structs.structure_type import StructureType
 from livoxsdk.structs.status import StatusUnion
-from .timestamp import timestamp_type, timestamp_type_from_enum
+from livoxsdk.structs.timestamp import timestamp_type, timestamp_type_from_enum, Timestamp
+from livoxsdk.structs.points import point_type_from_enum, PointUnionType
 
 
 serial_number_length: typing.Final[int] = 14
@@ -42,28 +43,44 @@ class DataPacketHeader(StructureType):
         return livoxsdk.enums.TimestampType(getattr(self, "timestamp_type_c"))
 
     @property
-    def timestamp(self) -> livoxsdk.structs.Timestamp:
+    def timestamp(self) -> Timestamp:
         OutType = timestamp_type_from_enum(self.timestamp_type)
         return OutType(getattr(self, "timestamp_c"))
 
     @timestamp.setter
-    def timestamp(self, stamp: livoxsdk.structs.Timestamp) -> None:
+    def timestamp(self, stamp: Timestamp) -> None:
         setattr(self, "timestamp_type_c", ctypes.c_uint8(timestamp_type(stamp).value))
         setattr(self, "timestamp_c", ctypes.c_uint64.from_buffer(bytes(stamp)))
 
 
-class DataPacket(livoxsdk.BinarySerializable):
+class DataPacket:
     header: DataPacketHeader
-    raw_payload: bytearray
+    payload: ctypes.Array
 
-    def __bytes__(self) -> bytes: ...
-    def __str__(self) -> str: ...
+    def __init__(self, header: DataPacketHeader,
+                 payload: typing.Union[ctypes.Array, PointUnionType]):
+        self.header: DataPacketHeader = header
+        if isinstance(payload, ctypes.Array):
+            self.payload: ctypes.Array = payload
+        else:
+            ArrayType = type(payload[0]) * len(payload)
+            self.payload: ctypes.Array = ArrayType()
+            for i in range(len(payload)):
+                self.payload[i] = payload[i]
+
+    def __bytes__(self) -> bytes:
+        return bytes(self.header) + bytes(self.payload)
+
+    def __str__(self) -> str:
+        return "DataPacket: {{{}, {} points}}".format(self.header, len(self.payload))
 
     @classmethod
-    def from_buffer_copy(cls, source: typing.Union[bytes, bytearray, memoryview], offset: int = 0) -> "DataPacket": ...
+    def from_buffer_copy(cls, source: typing.Union[bytes, bytearray, memoryview], offset: int = 0) -> "DataPacket":
+        header = DataPacketHeader.from_buffer_copy(source, offset)
+        offset += ctypes.sizeof(DataPacketHeader)
+        PointType: typing.Type[PointUnionType] = point_type_from_enum(header.data_type)
+        buffer_size = source.nbytes if isinstance(source, memoryview) else len(source)
+        num_points = (buffer_size - ctypes.sizeof(DataPacketHeader)) // ctypes.sizeof(PointType)
+        points = (PointType * num_points).from_buffer_copy(source, offset)
+        return DataPacket(header, points)
 
-    def get_payload(self) -> typing.Union[bytes, livoxsdk.BinarySerializable, typing.Any]:
-        raise NotImplementedError
-
-    def set_payload(self, val: typing.SupportsBytes) -> None:
-        raise NotImplementedError

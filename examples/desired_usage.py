@@ -38,4 +38,4 @@ if __name__ == '__main__':
     if len(found_devices) < 1:
         raise livoxsdk.port_scanner.NoDevicesDetectedError()
     else:
-        asyncio.run(main(list(found_devices)[0]), debug=debug)
+        asyncio.run(main(list(found_devices)[0]), debug=False)

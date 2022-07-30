@@ -4,9 +4,24 @@ from livoxsdk.structs.structure_type import StructureType
 
 
 class Extrinsics(StructureType):
-    x: ctypes.c_float = 0.0
-    y: ctypes.c_float = 0.0
-    z: ctypes.c_float = 0.0
-    roll: ctypes.c_float = 0.0
-    pitch: ctypes.c_float = 0.0
-    yaw: ctypes.c_float = 0.0
+    roll: float = 0.0
+    pitch: float = 0.0
+    yaw: float = 0.0
+
+    @property
+    def x(self) -> float: ...
+
+    @x.setter
+    def x(self, v: float) -> None: ...
+
+    @property
+    def y(self) -> float: ...
+
+    @y.setter
+    def y(self, v: float) -> None: ...
+
+    @property
+    def z(self) -> float: ...
+
+    @z.setter
+    def z(self, v: float) -> None: ...

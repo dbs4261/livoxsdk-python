@@ -3,6 +3,7 @@ import typing
 
 import livoxsdk
 from livoxsdk.structs.structure_type import StructureType
+from livoxsdk.structs.points import PointUnionType
 
 
 class DataPacketHeader(StructureType):
@@ -32,9 +33,11 @@ class DataPacketHeader(StructureType):
         raise NotImplementedError
 
 
-class DataPacket(livoxsdk.BinarySerializable):
+class DataPacket:
     header: DataPacketHeader
-    raw_payload: bytearray
+    payload: ctypes.Array
+
+    def __init__(self, header: DataPacketHeader, payload: typing.Union[ctypes.Array, PointUnionType]): ...
 
     def __bytes__(self) -> bytes: ...
 
@@ -42,9 +45,3 @@ class DataPacket(livoxsdk.BinarySerializable):
 
     @classmethod
     def from_buffer_copy(cls, source: typing.Union[bytes, bytearray, memoryview], offset: int = 0) -> "DataPacket": ...
-
-    def get_payload(self) -> typing.Union[bytes, livoxsdk.BinarySerializable, typing.Any]:
-        raise NotImplementedError
-
-    def set_payload(self, val: typing.SupportsBytes) -> None:
-        raise NotImplementedError

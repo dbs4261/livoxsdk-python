@@ -3,28 +3,28 @@ import typing
 
 
 class CoordinateSystem(enum.IntEnum):
-    Cartesian = enum.auto()
-    Spherical = enum.auto()
+    Cartesian = 0
+    Spherical = 1
 
 
-class PointCloudReturnMode(enum.Enum):
-    FirstReturn = enum.auto()
-    StrongestReturn = enum.auto()
-    DualReturn = enum.auto()
-    TripleReturn = enum.auto()
+class PointCloudReturnMode(enum.IntEnum):
+    FirstReturn = 0
+    StrongestReturn = 1
+    DualReturn = 2
+    TripleReturn = 3
 
 
-class PointDataType(enum.Enum):
-    Cartesian = enum.auto()
-    Spherical = enum.auto()
-    ExtendCartesian = enum.auto()
-    ExtendSpherical = enum.auto()
-    DualExtendCartesian = enum.auto()
-    DualExtendSpherical = enum.auto()
-    Imu = enum.auto()
-    TripleExtendCartesian = enum.auto()
-    TripleExtendSpherical = enum.auto()
-    MaxPointDataType = enum.auto()
+class PointDataType(enum.IntEnum):
+    Cartesian = 0
+    Spherical = 1
+    ExtendCartesian = 2
+    ExtendSpherical = 3
+    DualExtendCartesian = 4
+    DualExtendSpherical = 5
+    Imu = 6
+    TripleExtendCartesian = 7
+    TripleExtendSpherical = 8
+    MaxPointDataType = 9
 
     @staticmethod
     def from_return_mode(coordinate_system: CoordinateSystem, return_mode: PointCloudReturnMode) -> "PointDataType":

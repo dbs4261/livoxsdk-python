@@ -35,6 +35,31 @@ class Lidar(livoxsdk.Device):
     async def standby(self, timeout: typing.Optional[datetime.timedelta] = None) -> None:
         return await self.set_mode(livoxsdk.enums.LidarMode.Standby, timeout=timeout)
 
+    async def set_return_mode(self, return_mode: livoxsdk.enums.PointCloudReturnMode,
+                              timeout: typing.Optional[datetime.timedelta] = None):
+        return_mode_packet = livoxsdk.structs.ControlPacket.CreateCommand(
+            livoxsdk.enums.LidarCommandId.SetPointCloudReturnMode, payload=ctypes.c_uint8(return_mode.value))
+        response = await self._send_message_response(
+            return_mode_packet, caller="return_mode", timeout=timeout)
+        ret: ctypes.c_uint8 = response.get_payload()
+        if ret.value != 0:
+            raise livoxsdk.errors.LivoxBadRetError("Could not set the point cloud return mode")
+        else:
+            logger.info("Successfully set the coordinate system to {}".format(return_mode.name))
+
+    async def get_return_mode(self, timeout: typing.Optional[datetime.timedelta] = None
+                              ) -> livoxsdk.enums.PointCloudReturnMode:
+        return_mode_packet = livoxsdk.structs.ControlPacket.CreateCommand(
+            livoxsdk.enums.LidarCommandId.GetPointCloudReturnMode)
+        response = await self._send_message_response(
+            return_mode_packet, caller="return_mode", timeout=timeout)
+        payload: livoxsdk.payloads.PointReturnModeResponsePayload = response.get_payload()
+        if payload.ret_code != 0:
+            raise livoxsdk.errors.LivoxBadRetError("Could not get the point cloud return mode")
+        else:
+            logger.debug("Successfully got the coordinate system")
+            return payload.point_cloud_return_mode
+
     @property
     def extrinsics(self) -> livoxsdk.structs.Extrinsics: ...
 

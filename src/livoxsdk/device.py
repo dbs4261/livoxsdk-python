@@ -186,6 +186,8 @@ class Device:
             await self.disconnect()
         except livoxsdk.errors.LivoxConnectionError:
             pass
+        except asyncio.TimeoutError:
+            pass
         if self._command_protocol is not None:
             self._command_protocol.close()
         if self._data_protocol is not None:
@@ -312,6 +314,8 @@ class Device:
         else:
             logger.info("Successfully disconnected from {}".format(self.device_ip_address))
         if self._heartbeat_task is not None:
+            if self._state_update_future is not None:
+                await self._state_update_future[1]
             self._heartbeat_task.cancel()
             self._heartbeat_task = None
         return ret
@@ -331,12 +335,15 @@ class Device:
     async def set_coordinate_system(self, coord: livoxsdk.enums.CoordinateSystem,
                                     timeout: typing.Optional[datetime.timedelta] = None):
         coordinate_system_packet = livoxsdk.structs.ControlPacket.CreateCommand(
-            livoxsdk.enums.GeneralCommandId.CoordinateSystem)
+            livoxsdk.enums.GeneralCommandId.CoordinateSystem, payload=ctypes.c_uint8(coord.value))
         response = await self._send_message_response(
             coordinate_system_packet, caller="coordinate_system", timeout=timeout)
-        # TODO
-        self._coordinate_system = coord
-        return
+        ret: ctypes.c_uint8 = response.get_payload()
+        if ret.value != 0:
+            raise livoxsdk.errors.LivoxBadRetError("Could not set the coordinate system")
+        else:
+            logger.info("Successfully set the coordinate system to {}".format(coord.name))
+            self._coordinate_system = coord
 
     async def sampling(self, sampling_state: bool, timeout: typing.Optional[datetime.timedelta] = None):
         sampling_packet = livoxsdk.structs.ControlPacket.CreateCommand(
