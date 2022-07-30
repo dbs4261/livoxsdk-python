@@ -12,13 +12,15 @@ logger = logging.getLogger("DesiredUsage")
 
 
 async def main(conn_info: livoxsdk.port_scanner.DeviceConnectionInfo):
-    async with livoxsdk.Device(conn_info.ip_address, livoxsdk.Port(55001), livoxsdk.Port(65001),
-                               sensor_port=livoxsdk.Port(60001), event_loop=asyncio.get_running_loop()) as lidar:
+    async with livoxsdk.Lidar(conn_info.ip_address) as lidar:
         await lidar.connect()
-        logger.info("Sleeping...")
-        await asyncio.sleep(3)
         logger.info("Query result: {}".format(lidar.firmware_version))
-        await asyncio.sleep(3)
+        await lidar.make_ready()
+        await lidar.sampling(True)
+        await asyncio.sleep(5)
+        await lidar.sampling(False)
+        await asyncio.sleep(1)
+        await lidar.powersave()
         await lidar.disconnect()
     logger.info("Closing demo...")
 
