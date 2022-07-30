@@ -9,6 +9,8 @@ class Preamble(StructureType):
     _mapped_ = (
         ("packet_type_c", "packet_type"),
         ("_length", "length"),
+        ("sof", None),
+        ("version", None),
     )
     _fields_ = (
         ("sof", ctypes.c_uint8),

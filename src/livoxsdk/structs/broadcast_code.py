@@ -1,7 +1,6 @@
 import ctypes
 import typing
 
-import livoxsdk
 from livoxsdk.structs.structure_type import StructureType
 
 

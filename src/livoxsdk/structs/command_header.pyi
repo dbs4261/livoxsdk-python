@@ -1,5 +1,3 @@
-
-
 import livoxsdk
 from livoxsdk.structs.structure_type import StructureType
 
