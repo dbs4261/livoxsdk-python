@@ -60,7 +60,8 @@ class Device:
         self._sensor_protocol: typing.Optional[livoxsdk.SensorProtocol] = None
 
         self._heartbeat_task: typing.Optional[asyncio.Task] = None
-        self._state_update_future: typing.Optional[typing.Tuple[livoxsdk.enums.LidarState, asyncio.Future]] = None
+        self._state_update_future: typing.Optional[typing.Tuple[
+            typing.Union[typing.Literal[-1], livoxsdk.enums.LidarState], asyncio.Future]] = None
 
         self._firmware_version: typing.Optional[livoxsdk.FirmwareVersion] = None
         self._device_state: livoxsdk.enums.LidarState = livoxsdk.enums.LidarState.Unknown
@@ -112,6 +113,35 @@ class Device:
             raise RuntimeError("Device is not yet initialized. Use async with `livoxsdk.Device() as _:`")
         return self._device_type
 
+    @property
+    def data_callback(self) -> typing.Callable[[livoxsdk.DataPacket], None]:
+        if self._data_protocol is not None:
+            return self._data_protocol.callback
+        return lambda port: None
+
+    @data_callback.setter
+    def data_callback(self, callable_func: typing.Callable[[livoxsdk.DataPacket], None]) -> None:
+        if self._data_protocol is None:
+            raise ValueError("__aenter__ has not yet been called")
+        self._data_protocol.callback = callable_func
+
+    @property
+    def sensor_callback(self) -> typing.Callable[[livoxsdk.DataPacket], None]:
+        if self._data_protocol is not None:
+            return self._data_protocol.callback
+        return lambda port: None
+
+    @sensor_callback.setter
+    def sensor_callback(self, callable_func: typing.Callable[[livoxsdk.DataPacket], None]) -> None:
+        if self.sensor_port is not None:
+            if self._sensor_protocol is None:
+                raise ValueError("__aenter__ has not yet been called")
+            self._data_protocol.callback = callable_func
+        else:
+            logger.getChild("set_sensor_callback").warning(
+                "Setting sensor callback does nothing if the IMU sensor port is not requested. "
+                "(Use 0 to automatically determine a sensor port)")
+
     # </editor-fold>
 
     async def _update_device_conn_info(self):
@@ -136,17 +166,16 @@ class Device:
                 reuse_port=False, local_addr=(str(self.gateway_ip_address), self._command_port)
         )
         self._data_port, _, self._data_protocol = await _FindDatagramEndpoint(self._loop,
-                lambda: livoxsdk.DataProtocol(self.data_port), family=socket.AF_INET,
-                reuse_port=False, local_addr=(str(self.gateway_ip_address), self._data_port)
+                lambda: livoxsdk.DataProtocol(callback=lambda packet: None),
+                family=socket.AF_INET, reuse_port=False, local_addr=(str(self.gateway_ip_address), self._data_port)
         )
         await device_info_future
         if self.sensor_port is not None:
             if self._sensor_port <= 0:
                 self._sensor_port = livoxsdk._default_sensor_port
             self._sensor_port, _, self._sensor_protocol = await _FindDatagramEndpoint(self._loop,
-                    lambda: livoxsdk.SensorProtocol(self.sensor_port), family=socket.AF_INET,
-                    reuse_port=False, local_addr=(str(self.gateway_ip_address), self.sensor_port)
-            )
+                    lambda: livoxsdk.DataProtocol(callback=lambda port: None), family=socket.AF_INET,
+                    reuse_port=False, local_addr=(str(self.gateway_ip_address), self._sensor_port))
         return self
 
     async def __aexit__(self, __exc_type: typing.Optional[typing.Type[BaseException]],
@@ -313,9 +342,14 @@ class Device:
         sampling_packet = livoxsdk.structs.ControlPacket.CreateCommand(
             livoxsdk.enums.GeneralCommandId.ControlSample, payload=ctypes.c_uint8(int(sampling_state)))
         response = await self._send_message_response(sampling_packet, caller="sampling", timeout=timeout)
-        # TODO
-        self._sampling = sampling_state
-        return
+        ret: ctypes.c_uint8 = response.get_payload()
+        if ret.value != 0:
+            raise livoxsdk.errors.LivoxBadRetError("Could not {}able data stream".format(
+                "en" if sampling_state else "dis", self.device_ip_address))
+        else:
+            logger.info("Successfully {}abled from {}".format(
+                "en" if sampling_state else "dis", self.device_ip_address))
+            self._sampling = sampling_state
 
     def is_sampling(self) -> bool:
         return self._sampling

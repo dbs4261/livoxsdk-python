@@ -6,6 +6,10 @@ from livoxsdk.structs.structure_type import StructureType
 
 class HeartbeatResponsePayload(StructureType):
     _pack_ = 1
+    _mapped_ = (
+        ("state_c", "state"),
+        ("feature_c", "feature"),
+    )
     _fields_ = (
         ("ret_code", ctypes.c_uint8),
         ("state_c", ctypes.c_uint8),

@@ -31,5 +31,5 @@ payload_mapping: typing.Dict[PacketTypeEnum, typing.Union[None, AllCLiterals, ty
     (MessageType.ACK, GeneralCommandId.Heartbeat): payloads.HeartbeatResponsePayload,
     (MessageType.ACK, GeneralCommandId.DeviceInfo): payloads.QueryResponsePayload,
     (MessageType.ACK, GeneralCommandId.ControlSample): ctypes.c_uint8,
-    (MessageType.ACK, LidarCommandId): ctypes.c_uint8,
+    (MessageType.ACK, LidarCommandId.SetMode): ctypes.c_uint8,
 }
