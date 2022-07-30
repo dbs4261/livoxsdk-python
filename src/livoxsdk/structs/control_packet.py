@@ -34,6 +34,8 @@ class ControlPacketHeader(StructureType):
 
 
 class ControlPacket:
+    _current_sequence_number: typing.ClassVar[livoxsdk.AtomicCounter] = \
+        livoxsdk.AtomicCounter(max_val=(2 ** (ctypes.sizeof(ctypes.c_uint16) * 8 - 1)))
     header: ControlPacketHeader
     raw_payload: bytearray
     _packet_crc: ctypes.c_uint32
@@ -55,7 +57,7 @@ class ControlPacket:
     def CreateCommand(command_type: livoxsdk.enums.CommandId,
                       payload: typing.Union[bytes, bytearray, typing.SupportsBytes] = bytes()) -> "ControlPacket":
         return ControlPacket(header=ControlPacketHeader(packet_type=livoxsdk.enums.MessageType.CMD,
-            command_type=command_type), payload=payload)
+            command_type=command_type, seq_num=ControlPacket._current_sequence_number.postinc()), payload=payload)
 
     def __bytes__(self) -> bytes:
         return bytes(self.header) + self.raw_payload + bytes(self._packet_crc)

@@ -201,13 +201,19 @@ class Device:
 
     async def _heartbeat_function(self, interval: datetime.timedelta = datetime.timedelta(seconds=1),
                                   timeout: typing.Optional[datetime.timedelta] = None):
-        heartbeat_packet = livoxsdk.structs.ControlPacket.CreateCommand(
-            livoxsdk.enums.messages.GeneralCommandId.Heartbeat)
         logger.getChild("heartbeat").info("Beginning heartbeat...")
+        prior_progress = 0
         while True:
-            response = await self._send_message_response(heartbeat_packet, caller="heartbeat", timeout=timeout)
+            heartbeat_packet = livoxsdk.structs.ControlPacket.CreateCommand(
+                livoxsdk.enums.messages.GeneralCommandId.Heartbeat)
+            logger.getChild("heartbeat").debug("Sending heartbeat {}".format(heartbeat_packet))
+            try:
+                response = await self._send_message_response(heartbeat_packet, caller="heartbeat", timeout=timeout)
+            except asyncio.TimeoutError as exc:
+                raise livoxsdk.errors.LivoxHeartbeatLostError() from exc
 
             payload: livoxsdk.payloads.HeartbeatResponsePayload = response.get_payload()
+            logger.getChild("heartbeat").debug("Heartbeat response: {}".format(payload))
             if payload.ret_code != 0:
                 logger.getChild("heartbeat").warning("{} responded incorrectly to heartbeat with ret_code: {}".format(
                     self.device_ip_address, payload))
@@ -217,13 +223,22 @@ class Device:
                         "Heartbeat error {} with state {} received from {}\n"
                         "Details: feature: {} progress: {}".format(payload.ret_code, payload.state,
                             self.device_ip_address, payload.feature, payload.error_union.progress))
+                elif payload.state == livoxsdk.enums.devices.LidarState.Init:
+                    if payload.error_union.progress != prior_progress:
+                        prior_progress = payload.error_union.progress
+                        logger.info("State change progress: {}%".format(prior_progress))
                 else:
+                    if prior_progress != 0:
+                        logger.info("State change progress: {}%".format(100))
+                        prior_progress = 0
                     if self._device_state != payload.state:
-                        logger.getChild("hearbeat").info(
-                            "Device at {} updated state to {}".format(self.device_ip_address, payload.state))
+                        logger.getChild("heartbeat").info(
+                            "Device at {} updated state to {}".format(self.device_ip_address, str(payload.state)))
                     self._device_state = payload.state
-                    if self._state_update_future is not None and self._state_update_future[0] == payload.state:
-                        self._state_update_future[1].set_result(True)
+                    if self._state_update_future is not None:
+                        if self._state_update_future[0] == payload.state or self._state_update_future[0] < 0:
+                            self._state_update_future[1].set_result(True)
+                            self._state_update_future = None
             await asyncio.sleep(interval.total_seconds())
 
     async def query(self, timeout: typing.Optional[datetime.timedelta] = None) -> None:
@@ -250,8 +265,12 @@ class Device:
             raise livoxsdk.errors.LivoxConnectionError("Could not connect to {}".format(self.device_ip_address))
         else:
             logger.info("Successfully connected to {}".format(self.device_ip_address))
+        # Ensure the heartbeat is started before a device query is run
+        mode_set_future = self._loop.create_future()
+        self._state_update_future = (-1, mode_set_future)
         self._heartbeat_task = asyncio.get_running_loop().create_task(
             self._heartbeat_function(), name="{} Heartbeat".format(self.device_ip_address))
+        await mode_set_future
         await self.query(timeout=timeout)
         return ret
 
@@ -262,7 +281,10 @@ class Device:
         if ret.value != 0:
             raise livoxsdk.errors.LivoxConnectionError("Could not disconnect from {}".format(self.device_ip_address))
         else:
-            logger.info("Successfully disconnect from {}".format(self.device_ip_address))
+            logger.info("Successfully disconnected from {}".format(self.device_ip_address))
+        if self._heartbeat_task is not None:
+            self._heartbeat_task.cancel()
+            self._heartbeat_task = None
         return ret
 
     async def reboot(self, timeout: typing.Optional[datetime.timedelta] = None):

@@ -18,6 +18,10 @@ class LivoxConnectionError(LivoxError):
     pass
 
 
+class LivoxHeartbeatLostError(LivoxError):
+    pass
+
+
 class LivoxAbnormalStatusError(LivoxDeviceError):
     pass
 
