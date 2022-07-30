@@ -69,7 +69,7 @@ class Device:
         self._coordinate_system: typing.Optional[livoxsdk.enums.CoordinateSystem] = None
         self._sampling: bool = False
 
-    # <editor-fold desc="Read Only Properties">
+    # <editor-fold desc="Properties">
     @property
     def device_ip_address(self) -> ipaddress.IPv4Address:
         return self._device_ip_address
@@ -165,7 +165,7 @@ class Device:
             self._sensor_protocol.close()
         return None
 
-    async def _send_message(self, packet: livoxsdk.structs.Packet, caller: str) -> asyncio.Future:
+    async def _send_message(self, packet: livoxsdk.structs.ControlPacket, caller: str) -> asyncio.Future:
         if self._command_protocol is None or self._command_protocol.transport is None:
             raise RuntimeWarning("No transport!")
         packet.validate()
@@ -175,31 +175,34 @@ class Device:
                 "Receive future for {} already exists but will be canceled and replaced".format(packet.command_type))
             self._command_protocol.response_future_table[packet.command_type].cancel("Replaced")
         self._command_protocol.response_future_table[packet.command_type] = future
-        logger.getChild("send_{}".format(caller)).debug("Sending {} to {}:{}".format(
+        logger.getChild("send").getChild(caller).debug("Sending {} to {}:{}".format(
             bytes(packet).hex(), self.device_ip_address, livoxsdk.control_receive_port))
         self._command_protocol.transport.sendto(bytes(packet),
             (str(self.device_ip_address), livoxsdk.control_receive_port))
         return future
 
-    async def send_message(self, packet: livoxsdk.structs.Packet) -> asyncio.Future:
+    async def send_message(self, packet: livoxsdk.structs.ControlPacket) -> asyncio.Future:
         return await self._send_message(packet, caller="send_message")
 
-    async def _send_message_response(self, packet: livoxsdk.structs.Packet, caller: str,
-                                    timeout: typing.Optional[datetime.timedelta] = None) -> livoxsdk.structs.Packet:
+    async def _send_message_response(self, packet: livoxsdk.structs.ControlPacket, caller: str,
+                                     timeout: typing.Optional[datetime.timedelta] = None
+                                     ) -> livoxsdk.structs.ControlPacket:
         if timeout is None:
             timeout = self.default_timeout
         future = await self._send_message(packet, caller=caller)
-        response: livoxsdk.structs.Packet = await asyncio.wait_for(future, timeout=timeout.total_seconds())
-        logger.getChild("receive_{}".format(caller)).debug("Received {}".format(response))
+        response: livoxsdk.structs.ControlPacket = await asyncio.wait_for(future, timeout=timeout.total_seconds())
+        logger.getChild("receive").getChild(caller).debug("Received {}".format(response))
         return response
 
-    async def send_message_response(self, packet: livoxsdk.structs.Packet,
-                                     timeout: typing.Optional[datetime.timedelta] = None) -> livoxsdk.structs.Packet:
+    async def send_message_response(self, packet: livoxsdk.structs.ControlPacket,
+                                    timeout: typing.Optional[datetime.timedelta] = None
+                                    ) -> livoxsdk.structs.ControlPacket:
         return await self._send_message_response(packet, caller="send_message_response", timeout=timeout)
 
     async def _heartbeat_function(self, interval: datetime.timedelta = datetime.timedelta(seconds=1),
                                   timeout: typing.Optional[datetime.timedelta] = None):
-        heartbeat_packet = livoxsdk.structs.Packet.CreateCommand(livoxsdk.enums.messages.GeneralCommandId.Heartbeat)
+        heartbeat_packet = livoxsdk.structs.ControlPacket.CreateCommand(
+            livoxsdk.enums.messages.GeneralCommandId.Heartbeat)
         logger.getChild("heartbeat").info("Beginning heartbeat...")
         while True:
             response = await self._send_message_response(heartbeat_packet, caller="heartbeat", timeout=timeout)
@@ -224,7 +227,7 @@ class Device:
             await asyncio.sleep(interval.total_seconds())
 
     async def query(self, timeout: typing.Optional[datetime.timedelta] = None) -> None:
-        query_packet = livoxsdk.structs.Packet.CreateCommand(livoxsdk.enums.GeneralCommandId.DeviceInfo)
+        query_packet = livoxsdk.structs.ControlPacket.CreateCommand(livoxsdk.enums.GeneralCommandId.DeviceInfo)
         response = await self._send_message_response(query_packet, caller="query", timeout=timeout)
         payload: livoxsdk.payloads.QueryResponsePayload = response.get_payload()
         if payload.ret_code != 0:
@@ -232,8 +235,8 @@ class Device:
         self._firmware_version = payload.firmware_version
 
     async def connect(self, timeout: typing.Optional[datetime.timedelta] = None) -> ctypes.c_uint8:
-        connection_packet = livoxsdk.structs.Packet.CreateCommand(livoxsdk.enums.GeneralCommandId.Handshake,
-            livoxsdk.payloads.ConnectionRequestPayload(
+        connection_packet = livoxsdk.structs.ControlPacket.CreateCommand(
+            livoxsdk.enums.GeneralCommandId.Handshake, livoxsdk.payloads.ConnectionRequestPayload(
                 ip_address=self.gateway_ip_address, command_port=self.command_port,
                 data_port=self.data_port, sensor_port=self.sensor_port,
             )
@@ -253,7 +256,7 @@ class Device:
         return ret
 
     async def disconnect(self, timeout: typing.Optional[datetime.timedelta] = None) -> ctypes.c_uint8:
-        disconnect_packet = livoxsdk.structs.Packet.CreateCommand(livoxsdk.enums.GeneralCommandId.Disconnect)
+        disconnect_packet = livoxsdk.structs.ControlPacket.CreateCommand(livoxsdk.enums.GeneralCommandId.Disconnect)
         response = await self._send_message_response(disconnect_packet, caller="disconnect", timeout=timeout)
         ret: ctypes.c_uint8 = response.get_payload()
         if ret.value != 0:
@@ -263,20 +266,20 @@ class Device:
         return ret
 
     async def reboot(self, timeout: typing.Optional[datetime.timedelta] = None):
-        reboot_packet = livoxsdk.structs.Packet.CreateCommand(livoxsdk.enums.GeneralCommandId.RebootDevice)
+        reboot_packet = livoxsdk.structs.ControlPacket.CreateCommand(livoxsdk.enums.GeneralCommandId.RebootDevice)
         response = await self._send_message_response(reboot_packet, caller="reboot", timeout=timeout)
         # TODO
         return
 
     async def ip_info(self, timeout: typing.Optional[datetime.timedelta] = None):
-        ip_info_packet = livoxsdk.structs.Packet.CreateCommand(livoxsdk.enums.GeneralCommandId.RebootDevice)
+        ip_info_packet = livoxsdk.structs.ControlPacket.CreateCommand(livoxsdk.enums.GeneralCommandId.RebootDevice)
         response = await self._send_message_response(ip_info_packet, caller="ip_info", timeout=timeout)
         # TODO
         return
 
     async def set_coordinate_system(self, coord: livoxsdk.enums.CoordinateSystem,
                                     timeout: typing.Optional[datetime.timedelta] = None):
-        coordinate_system_packet = livoxsdk.structs.Packet.CreateCommand(
+        coordinate_system_packet = livoxsdk.structs.ControlPacket.CreateCommand(
             livoxsdk.enums.GeneralCommandId.CoordinateSystem)
         response = await self._send_message_response(
             coordinate_system_packet, caller="coordinate_system", timeout=timeout)
@@ -285,8 +288,8 @@ class Device:
         return
 
     async def sampling(self, sampling_state: bool, timeout: typing.Optional[datetime.timedelta] = None):
-        sampling_packet = livoxsdk.structs.Packet.CreateCommand(livoxsdk.enums.GeneralCommandId.ControlSample,
-            payload=ctypes.c_uint8(int(sampling_state)))
+        sampling_packet = livoxsdk.structs.ControlPacket.CreateCommand(
+            livoxsdk.enums.GeneralCommandId.ControlSample, payload=ctypes.c_uint8(int(sampling_state)))
         response = await self._send_message_response(sampling_packet, caller="sampling", timeout=timeout)
         # TODO
         self._sampling = sampling_state

@@ -12,8 +12,8 @@ logger = livoxsdk.logging_helpers.logger.getChild("Lidar")
 class Lidar(livoxsdk.Device):
     async def set_mode(self, mode: livoxsdk.enums.LidarMode,
                        timeout: typing.Optional[datetime.timedelta] = None) -> asyncio.Future:
-        set_mode_packet = livoxsdk.structs.Packet(
-            header=livoxsdk.structs.PacketHeader(
+        set_mode_packet = livoxsdk.structs.ControlPacketPacket(
+            header=livoxsdk.structs.ControlPacketPacketHeader(
                 packet_type=livoxsdk.enums.MessageType.CMD,
                 command_type=livoxsdk.enums.LidarCommandId.SetMode,
             ),

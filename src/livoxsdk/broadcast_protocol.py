@@ -15,7 +15,7 @@ class BroadcastProtocol(asyncio.DatagramProtocol):
 
     def datagram_received(self, data: bytes, addr: typing.Tuple[str, int]) -> None:
         if self.device_ip_address == addr[0] and addr[1] == livoxsdk.control_receive_port:
-            packet = livoxsdk.structs.Packet.from_buffer_copy(data)
+            packet = livoxsdk.structs.ControlPacket.from_buffer_copy(data)
             packet.validate()
             if packet.packet_type == livoxsdk.enums.messages.MessageType.MSG and \
                     packet.command_set == livoxsdk.enums.messages.CommandSet.General and \
