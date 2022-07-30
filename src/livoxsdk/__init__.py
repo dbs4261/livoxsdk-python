@@ -17,7 +17,7 @@ from . import utilities
 from .binary_serializable import BinarySerializable, BinaryMappable
 from .atomic_counter import AtomicCounter
 from . import structs
-from .structs import BroadcastCode
+from .structs import BroadcastCode, ControlPacketHeader, DataPacketHeader, DataPacket
 from . import payloads
 from .payloads import FirmwareVersion
 from .port_scanner import scan_for_devices
