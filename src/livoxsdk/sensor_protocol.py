@@ -22,7 +22,7 @@ class SensorProtocol(asyncio.DatagramProtocol):
 
     def datagram_received(self, data: bytes, addr: typing.Tuple[str, int]) -> None:
         logger.getChild("DatagramReceived").debug("{} {}".format(data.hex(), addr))
-        if addr[1] == livoxsdk.control_port:
+        if addr[1] == livoxsdk.control_receive_port:
             logger.getChild("DatagramReceived").debug("Received packet {} from {}:{}".format(data.hex(), *addr))
         else:
             logger.getChild("DatagramReceived").debug("Overheard packet {} from {}:{}".format(data.hex(), *addr))

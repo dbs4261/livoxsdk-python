@@ -172,8 +172,9 @@ class Device:
             self._command_protocol.response_future_table[packet.command_type].cancel("Replaced")
         self._command_protocol.response_future_table[packet.command_type] = future
         logger.getChild("send_{}".format(caller)).debug("Sending {} to {}:{}".format(
-            bytes(packet).hex(), self.device_ip_address, livoxsdk.control_port))
-        self._command_protocol.transport.sendto(bytes(packet), (str(self.device_ip_address), livoxsdk.control_port))
+            bytes(packet).hex(), self.device_ip_address, livoxsdk.control_receive_port))
+        self._command_protocol.transport.sendto(bytes(packet),
+            (str(self.device_ip_address), livoxsdk.control_receive_port))
         return future
 
     async def send_message(self, packet: livoxsdk.structs.Packet) -> asyncio.Future:
@@ -234,8 +235,8 @@ class Device:
             )
         )
         logger.getChild("connect").info("Sending connection request from {} to {}:{} | (cmd: {}, data: {}{})".format(
-            self.gateway_ip_address, self.device_ip_address, livoxsdk.control_port, self.command_port, self.data_port,
-            "" if self.sensor_port is None else ", sensor: {}".format(self.sensor_port)))
+            self.gateway_ip_address, self.device_ip_address, livoxsdk.control_receive_port, self.command_port,
+            self.data_port, "" if self.sensor_port is None else ", sensor: {}".format(self.sensor_port)))
         response = await self._send_message_response(connection_packet, caller="connect", timeout=timeout)
         ret: ctypes.c_uint8 = response.get_payload()
         if ret.value != 0:

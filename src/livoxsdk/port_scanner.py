@@ -31,7 +31,7 @@ class PortScannerProtocol(asyncio.DatagramProtocol):
 
     def datagram_received(self, data: bytes, addr: typing.Tuple[str, int]) -> None:
         logger.getChild("DatagramReceived").debug("{} {}".format(data.hex(), addr))
-        if addr[1] == livoxsdk.control_port:
+        if addr[1] == livoxsdk.control_receive_port:
             packet = livoxsdk.structs.Packet.from_buffer_copy(data)
             if not packet.valid():
                 raise livoxsdk.crc.CrcChecksumError("Invalid packet encountered during port scan")

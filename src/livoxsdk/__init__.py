@@ -3,7 +3,8 @@ import typing
 endianness: typing.Literal["little", "big"] = "little"
 Port = typing.NewType("Port", int)
 scan_port: typing.Final[Port] = Port(55000)
-control_port: typing.Final[Port] = Port(65000)
+data_transmit_port: typing.Final[Port] = Port(65000)
+control_receive_port: typing.Final[Port] = Port(65000)
 _default_command_port: typing.Final[Port] = Port(55001)
 _default_data_port: typing.Final[Port] = Port(65001)
 _default_sensor_port: typing.Final[Port] = Port(60001)

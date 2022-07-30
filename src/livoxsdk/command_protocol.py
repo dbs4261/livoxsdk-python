@@ -32,7 +32,7 @@ class CommandProtocol(asyncio.DatagramProtocol):
             raise NotImplementedError("Multiple connections not supported")
 
     def datagram_received(self, data: bytes, addr: typing.Tuple[str, int]) -> None:
-        if addr[1] == livoxsdk.control_port:
+        if addr[1] == livoxsdk.control_receive_port:
             logger.getChild("DatagramReceived").debug("Received packet {} from {}:{}".format(data.hex(), *addr))
             packet = livoxsdk.structs.Packet.from_buffer_copy(data)
             packet.validate()
