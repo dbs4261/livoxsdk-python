@@ -52,7 +52,7 @@ class Device:
                              "for communicating with {}".format(self._device_ip_address))
         self._command_port: livoxsdk.Port = command_port if command_port is not None else livoxsdk._default_command_port
         self._data_port: livoxsdk.Port = data_port if data_port is not None else livoxsdk._default_data_port
-        self._sensor_port: typing.Optional[livoxsdk.Port] = sensor_port if sensor_port is not None else 0
+        self._sensor_port: typing.Optional[livoxsdk.Port] = sensor_port
         self._loop: typing.Optional[asyncio.AbstractEventLoop] = event_loop
 
         self._command_protocol: typing.Optional[livoxsdk.CommandProtocol] = None
@@ -153,6 +153,10 @@ class Device:
                         __exc_value: typing.Optional[BaseException],
                         __traceback: typing.Optional[TracebackType]) -> typing.Optional[bool]:
         logger.info("Disconnecting from demo")
+        try:
+            await self.disconnect()
+        except livoxsdk.errors.LivoxConnectionError:
+            pass
         if self._command_protocol is not None:
             self._command_protocol.close()
         if self._data_protocol is not None:

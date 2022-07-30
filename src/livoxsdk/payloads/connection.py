@@ -1,5 +1,6 @@
 import ctypes
 import ipaddress
+import typing
 
 import livoxsdk
 from livoxsdk.structs.structure_type import StructureType
@@ -18,12 +19,12 @@ class ConnectionRequestPayload(StructureType):
     )
 
     def __init__(self, ip_address: ipaddress.IPv4Address, data_port: livoxsdk.Port,
-                 command_port: livoxsdk.Port, sensor_port: livoxsdk.Port = 0):
+                 command_port: livoxsdk.Port, sensor_port: typing.Optional[livoxsdk.Port] = None):
         values = {
             "ip_address_c": (ctypes.c_uint8 * 4).from_buffer_copy(ip_address.packed),
             "data_port": data_port,
             "command_port": command_port,
-            "sensor_port": sensor_port,
+            "sensor_port": sensor_port if sensor_port is not None else 0,
         }
         super().__init__(**values)
 
