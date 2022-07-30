@@ -1,18 +1,14 @@
 [build-system]
+build-backend = "setuptools.build_meta"
 requires = ["setuptools", "wheel"]
 
 [project]
 name = "livoxsdk"
-version = "0.0.1"
 authors = [
-  { name="Daniel Simon", email="dansimon09+livoxsdk@gmail.com" },
+    { name="Daniel Simon", email="dansimon09+livoxsdk@gmail.com" },
 ]
 description = "An asyncio library for interfacing with Livox LIDAR devices"
-readme = "README.md"
 requires-python = ">=3.10"
-homepage = "https://github.com/dbs4261/livoxsdk-python"
-repository = "https://github.com/dbs4261/livoxsdk-python"
-documentation = "https://github.com/dbs4261/livoxsdk-python"
 keywords = ["Livox", "LIDAR", "PointCloud", "3D", "async", "asyncio"]
 classifiers = [
     "Development Status :: 1 - Planning",
@@ -21,12 +17,22 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Framework::AsyncIO",
-    "Typing::Typed"
+    "Typing::Typed",
 ]
 dependencies = [
-    "crcmod",
-    "netifaces",
+    "crcmod >= 1.7",
+    "netifaces >= 0.11",
 ]
+dynamic = ["version", "readme"]
 
 [project.license]
 file = "LICENSE"
+
+[project.urls]
+"homepage" = "https://github.com/dbs4261/livoxsdk-python"
+"repository" = "https://github.com/dbs4261/livoxsdk-python"
+"documentation" = "https://github.com/dbs4261/livoxsdk-python"
+
+[tool.setuptools.dynamic]
+version = {attr = "livoxsdk.__version__"}
+readme = {file = "README.md"}

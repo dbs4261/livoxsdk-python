@@ -1,3 +1,5 @@
+__version__ = "0.0.1"
+
 import typing
 
 endianness: typing.Literal["little", "big"] = "little"

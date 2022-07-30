@@ -12,3 +12,7 @@ venv.bak/
 
 # MyPy
 .mypy_cache
+
+# Packages
+dist/
+livoxsdk.egg-info/
