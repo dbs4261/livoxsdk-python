@@ -8,6 +8,11 @@ class DeviceType(enum.IntEnum):
     LidarHorizon = 3
     LidarMid70 = 6
     LidarAvia = 7
+#    LidarMid360 = 9
+    LidarCF = 9
+    LidarIndustrialHAP = 10
+    LidarHAP = 15
+    LidarAP = 16
 
     def is_hub(self) -> bool:
         return self == DeviceType.Hub
