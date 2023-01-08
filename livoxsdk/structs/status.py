@@ -102,5 +102,14 @@ class StatusUnion(ctypes.Union):
         ("status_code", ErrorMessage),
     )
 
+    def typed_get(self, device_type: typing.Union[
+        None, typing.Literal["progress", "error_code"], livoxsdk.enums.devices.DeviceType] = None):
+        if device_type not in livoxsdk.enums.devices.DeviceType._value2member_map_:
+            return self.error_code
+        elif device_type.is_hub():
+            return self.hub_error_code
+        else:
+            return self.lidar_error_code
+
     def __str__(self) -> str:
         return "StatusUnion {{error_code/progress: {}}}".format(self.error_code)

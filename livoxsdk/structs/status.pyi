@@ -6,62 +6,62 @@ from livoxsdk.structs.structure_type import StructureType
 
 
 class LidarErrorCode(StructureType):
-    temp_status: ctypes.c_int32
-    volt_status: ctypes.c_int32
-    motor_status: ctypes.c_int32
-    dirty_warn: ctypes.c_int32
-    firmware_err: ctypes.c_int32
-    pps_status: ctypes.c_int32
-    device_status: ctypes.c_int32
-    fan_status: ctypes.c_int32
-    self_heating: ctypes.c_int32
-    ptp_status: ctypes.c_int32
-    system_status: ctypes.c_int32
+    # Note: ctypes.sizeof(LidarErrorCode) == ctypes.sizeof(ctypes.c_uint32)
+    temp_status: typing.Annotated[int, ctypes.c_int32, livoxsdk.annotations.BitField(2)]
+    volt_status: typing.Annotated[int, ctypes.c_int32, livoxsdk.annotations.BitField(2)]
+    motor_status: typing.Annotated[int, ctypes.c_int32, livoxsdk.annotations.BitField(2)]
+    dirty_warn: typing.Annotated[int, ctypes.c_int32, livoxsdk.annotations.BitField(2)]
+    firmware_err: typing.Annotated[int, ctypes.c_int32, livoxsdk.annotations.BitField(1)]
+    pps_status: typing.Annotated[int, ctypes.c_int32, livoxsdk.annotations.BitField(1)]
+    device_status: typing.Annotated[int, ctypes.c_int32, livoxsdk.annotations.BitField(1)]
+    fan_status: typing.Annotated[int, ctypes.c_int32, livoxsdk.annotations.BitField(1)]
+    self_heating: typing.Annotated[int, ctypes.c_int32, livoxsdk.annotations.BitField(1)]
+    ptp_status: typing.Annotated[int, ctypes.c_int32, livoxsdk.annotations.BitField(1)]
+    ...
+    system_status: typing.Annotated[int, ctypes.c_int32, livoxsdk.annotations.BitField(2)]
 
     @property
-    def time_sync_status(self) -> livoxsdk.enums.devices.TimeSync:
-        raise NotImplementedError
+    def time_sync_status(self) -> livoxsdk.enums.devices.TimeSync: ...
 
     @time_sync_status.setter
-    def time_sync_status(self, val: livoxsdk.enums.devices.TimeSync) -> None:
-        raise NotImplementedError
+    def time_sync_status(self, val: livoxsdk.enums.devices.TimeSync) -> None: ...
 
 
 class HubErrorCode(StructureType):
-    temp_status: ctypes.c_uint32
-    lidar_status: ctypes.c_uint32
-    lidar_link_status: ctypes.c_uint32
-    firmware_err: ctypes.c_uint32
-    system_status: ctypes.c_uint32
+    ...
+    temp_status: typing.Annotated[int, ctypes.c_uint32, livoxsdk.annotations.BitField(2)]
+    lidar_status: typing.Annotated[int, ctypes.c_uint32, livoxsdk.annotations.BitField(1)]
+    lidar_link_status: typing.Annotated[int, ctypes.c_uint32, livoxsdk.annotations.BitField(1)]
+    firmware_err: typing.Annotated[int, ctypes.c_uint32, livoxsdk.annotations.BitField(1)]
+    ...
+    system_status: typing.Annotated[int, ctypes.c_uint32, livoxsdk.annotations.BitField(2)]
 
     @property
-    def sync_status(self) -> livoxsdk.enums.devices.TimeSync:
-        raise NotImplementedError
+    def sync_status(self) -> livoxsdk.enums.devices.TimeSync: ...
 
     @sync_status.setter
-    def sync_status(self, val: livoxsdk.enums.devices.TimeSync) -> None:
-        raise NotImplementedError
+    def sync_status(self, val: livoxsdk.enums.devices.TimeSync) -> None: ...
 
     @property
-    def time_sync_status(self) -> livoxsdk.enums.devices.TimeSync:
-        raise NotImplementedError
+    def time_sync_status(self) -> livoxsdk.enums.devices.TimeSync: ...
 
     @time_sync_status.setter
-    def time_sync_status(self, val: livoxsdk.enums.devices.TimeSync) -> None:
-        raise NotImplementedError
+    def time_sync_status(self, val: livoxsdk.enums.devices.TimeSync) -> None: ...
 
 
 class ErrorMessage(ctypes.Union):
-    error_code: ctypes.c_uint32
+    error_code: typing.Annotated[int, ctypes.c_uint32]
     lidar_error_code: LidarErrorCode
     hub_error_code: HubErrorCode
 
-    def typed_get(self, device_type: typing.Optional[livoxsdk.enums.devices.DeviceType] = None):
-        raise NotImplementedError
+    def typed_get(self, device_type: typing.Optional[livoxsdk.enums.devices.DeviceType] = None): ...
 
 
 class StatusUnion(ctypes.Union):
-    progress: ctypes.c_uint32
-    error_code: ctypes.c_uint32
+    progress: typing.Annotated[int, ctypes.c_uint32]
+    error_code: typing.Annotated[int, ctypes.c_uint32]
     lidar_error_code: LidarErrorCode
     hub_error_code: HubErrorCode
+
+    def typed_get(self, device_type: typing.Union[
+        None, typing.Literal["progress", "error_code"], livoxsdk.enums.devices.DeviceType] = None): ...

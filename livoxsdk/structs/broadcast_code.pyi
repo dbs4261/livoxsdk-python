@@ -9,20 +9,15 @@ serial_number_length: typing.Final[int]
 
 class BroadcastCode(StructureType):
     @property
-    def serial(self) -> str:
-        raise NotImplementedError
+    def serial(self) -> str: ...
 
     @serial.setter
-    def serial(self, val: str) -> None:
-        raise NotImplementedError
+    def serial(self, val: str) -> None: ...
 
     @property
-    def range_code(self) -> int:
-        raise NotImplementedError
+    def range_code(self) -> int: ...
 
     @range_code.setter
-    def range_code(self, val: int):
-        raise NotImplementedError
+    def range_code(self, val: int): ...
 
-    def valid(self) -> bool:
-        raise NotImplementedError
+    def valid(self) -> bool: ...

@@ -1,7 +1,9 @@
 import ctypes
+import typing
 
 import livoxsdk
 from livoxsdk.structs.structure_type import StructureType
+from livoxsdk.utilities.annotations import LowerBound, UpperBound
 
 
 class Preamble(StructureType):
@@ -39,11 +41,11 @@ class Preamble(StructureType):
         setattr(self, "packet_type_c", ctypes.c_uint8(val))
 
     @property
-    def length(self) -> ctypes.c_uint16:
-        return getattr(self, "_length")
+    def length(self) -> int:
+        return getattr(self, "_length").value
 
     @length.setter
-    def length(self, val: ctypes.c_uint16) -> None:
+    def length(self, val: typing.Union[int, ctypes.c_uint16]) -> None:
         setattr(self, "_length", val)
 
     def crc(self) -> int:

@@ -56,10 +56,12 @@ class ControlPacket:
     @staticmethod
     def CreateCommand(command_type: livoxsdk.enums.CommandId,
                       payload: typing.Union[bytes, bytearray, typing.SupportsBytes] = bytes()) -> "ControlPacket":
+        # noinspection PyUnresolvedReferences
         return ControlPacket(header=ControlPacketHeader(packet_type=livoxsdk.enums.MessageType.CMD,
             command_type=command_type, seq_num=ControlPacket._current_sequence_number.postinc()), payload=payload)
 
     def __bytes__(self) -> bytes:
+        # noinspection PyUnresolvedReferences
         return bytes(self.header) + self.raw_payload + bytes(self._packet_crc)
 
     def __str__(self) -> str:
@@ -110,6 +112,7 @@ class ControlPacket:
 
     @property
     def packet_crc(self) -> int:
+        # noinspection PyUnresolvedReferences
         return self._packet_crc.value
 
     @packet_crc.setter
@@ -159,32 +162,3 @@ class ControlPacket:
         if expected_crc32 != calculated_crc32:
             raise livoxsdk.crc.CrcChecksumError(
                 "CRC32 mismatch: calculated {} expected {}".format(calculated_crc32, expected_crc32))
-
-
-if __name__ == "__main__":
-    import copy
-    heartbeat_command: bytearray = bytearray.fromhex("AA010F0000000004D7000338BA8D0C")
-    powersave_command: bytearray = bytearray.fromhex("AA011000000000B809010002AB73F4FB")
-    tmp = ControlPacket.from_buffer_copy(powersave_command)
-    print(tmp.valid())
-    # tmp2 = PacketBase.from_buffer(powersave_command)
-    tmp2 = tmp.from_buffer(powersave_command)
-    print(powersave_command.hex(), bytes(tmp).hex(),
-          "".join("1" if a == b else "0" for a, b in zip(powersave_command.hex(), bytes(tmp).hex())), sep="\n")
-    print(powersave_command.hex(), bytes(tmp2).hex(),
-          "".join("1" if a == b else "0" for a, b in zip(powersave_command.hex(), bytes(tmp2).hex())),sep="\n")
-    print(bytes(tmp.preamble).hex(), bytes(tmp.command_header).hex(), bytes(ctypes.c_uint32(tmp.packet_crc)).hex())
-    tmpp = copy.deepcopy(tmp.preamble)
-    tmpp.sof = 169
-    assert(tmp.preamble != tmpp)
-    tmp.preamble = tmpp
-    assert(tmp.preamble == tmpp)
-    print(tmp)
-    print(ctypes.sizeof(tmp), ctypes.sizeof(type(tmp)), powersave_command.hex(), bytes(tmp).hex())
-    tmp.length = 19
-    print(tmp, tmp.packet_crc)
-    print(ctypes.sizeof(tmp), ctypes.sizeof(type(tmp)), bytes(tmp).hex())
-    tmp.payload = "ticktock".encode("ascii")
-    print(tmp)
-    del tmp.payload
-    print(tmp)

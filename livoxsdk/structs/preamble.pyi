@@ -1,33 +1,28 @@
 import ctypes
+import typing
 
 import livoxsdk
 from livoxsdk.structs.structure_type import StructureType
 
 
 class Preamble(StructureType):
-    sof: ctypes.c_uint8 = 170
-    version: ctypes.c_uint8 = 1
-    seq_num: ctypes.c_uint16 = 0
-    preamble_crc: ctypes.c_uint16
+    sof: typing.Annotated[int, ctypes.c_uint8] = 170
+    version: typing.Annotated[int, ctypes.c_uint8] = 1
+    seq_num: typing.Annotated[int, ctypes.c_uint16] = 0
+    preamble_crc: typing.Annotated[int, ctypes.c_uint16]
 
     @property
-    def packet_type(self) -> livoxsdk.enums.MessageType:
-        raise NotImplementedError
+    def packet_type(self) -> livoxsdk.enums.MessageType: ...
 
     @packet_type.setter
-    def packet_type(self, val: livoxsdk.enums.MessageType) -> None:
-        raise NotImplementedError
+    def packet_type(self, val: livoxsdk.enums.MessageType) -> None: ...
 
     @property
-    def length(self) -> ctypes.c_uint16:
-        raise NotImplementedError
+    def length(self) -> int: ...
 
     @length.setter
-    def length(self, val: ctypes.c_uint16) -> None:
-        raise NotImplementedError
+    def length(self, val: typing.Union[int, ctypes.c_uint16]) -> None: ...
 
-    def crc(self) -> int:
-        raise NotImplementedError
+    def crc(self) -> int: ...
 
-    def valid(self) -> bool:
-        raise NotImplementedError
+    def valid(self) -> bool: ...

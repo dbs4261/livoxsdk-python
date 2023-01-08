@@ -1,14 +1,15 @@
 import ctypes
+import typing
 
+import livoxsdk
 from livoxsdk.structs.structure_type import StructureType
 
 
 class ReturnTagBitfield(StructureType):
-    # In reality: ctypes.sizeof(ReturnTag) == ctypes.sizeof(ctypes.c_uint8)
-    spatial_noise: ctypes.c_uint8
-    intensity_noise: ctypes.c_uint8
-    return_number: ctypes.c_uint8
-    reserved: ctypes.c_uint8
+    # Note: ctypes.sizeof(ReturnTag) == ctypes.sizeof(ctypes.c_uint8)
+    spatial_noise: typing.Annotated[int, ctypes.c_uint8, livoxsdk.annotations.BitField(2)]
+    intensity_noise: typing.Annotated[int, ctypes.c_uint8, livoxsdk.annotations.BitField(2)]
+    return_number: typing.Annotated[int, ctypes.c_uint8, livoxsdk.annotations.BitField(2)]
+    reserved: typing.Annotated[int, ctypes.c_uint8, livoxsdk.annotations.BitField(2)]
 
-    def is_noise(self) -> bool:
-        raise NotImplementedError
+    def is_noise(self) -> bool: ...

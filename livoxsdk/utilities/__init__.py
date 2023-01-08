@@ -1,4 +1,5 @@
 from .network import HostIPForDeviceIp
+from . import annotations
 
 
 def compare_hex(a, b):

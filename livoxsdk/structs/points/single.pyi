@@ -7,15 +7,14 @@ from livoxsdk.structs.points.return_iterator import ReturnIterator
 
 
 class ExtendRawPoint(StructureType):
-    x: ctypes.c_int32
-    y: ctypes.c_int32
-    z: ctypes.c_int32
-    reflectivity: ctypes.c_uint8
-    tag: ctypes.c_uint8
+    x: typing.Annotated[int, ctypes.c_int32]
+    y: typing.Annotated[int, ctypes.c_int32]
+    z: typing.Annotated[int, ctypes.c_int32]
+    reflectivity: typing.Annotated[int, ctypes.c_uint8]
+    tag: typing.Annotated[int, ctypes.c_uint8]
     tag_bitfield: ReturnTagBitfield
 
-    def __iter__(self) -> ReturnIterator:
-        return ReturnIterator(self, 1, True)
+    def __iter__(self) -> ReturnIterator: ...
 
 
 ExtendCartesianPoint: typing.TypeAlias = ExtendRawPoint
@@ -24,15 +23,14 @@ ExtendedCartesianPoint: typing.TypeAlias = ExtendedRawPoint
 
 
 class ExtendSpherPoint(StructureType):
-    depth: ctypes.c_uint32
-    theta: ctypes.c_uint16
-    phi: ctypes.c_uint16
-    reflectivity: ctypes.c_uint8
-    tag: ctypes.c_uint8
+    depth: typing.Annotated[int, ctypes.c_uint32]
+    theta: typing.Annotated[int, ctypes.c_uint16]
+    phi: typing.Annotated[int, ctypes.c_uint16]
+    reflectivity: typing.Annotated[int, ctypes.c_uint8]
+    tag: typing.Annotated[int, ctypes.c_uint8]
     tag_bitfield: ReturnTagBitfield
 
-    def __iter__(self) -> ReturnIterator:
-        return ReturnIterator(self, 1, False)
+    def __iter__(self) -> ReturnIterator: ...
 
 
 ExtendSphericalPoint: typing.TypeAlias = ExtendSpherPoint

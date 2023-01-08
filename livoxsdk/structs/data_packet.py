@@ -5,7 +5,7 @@ import livoxsdk
 from livoxsdk.structs.structure_type import StructureType
 from livoxsdk.structs.status import StatusUnion
 from livoxsdk.structs.timestamp import timestamp_type, timestamp_type_from_enum, Timestamp
-from livoxsdk.structs.points import point_type_from_enum, PointUnionType
+from livoxsdk.structs.points import point_type_from_enum, PointUnionType, PointUnionListType
 
 
 serial_number_length: typing.Final[int] = 14
@@ -36,6 +36,7 @@ class DataPacketHeader(StructureType):
 
     @data_type.setter
     def data_type(self, val: livoxsdk.enums.PointDataType) -> None:
+        # noinspection PyTypeChecker
         setattr(self, "state_c", ctypes.c_uint8(val.value))
 
     @property
@@ -49,6 +50,7 @@ class DataPacketHeader(StructureType):
 
     @timestamp.setter
     def timestamp(self, stamp: Timestamp) -> None:
+        # noinspection PyTypeChecker
         setattr(self, "timestamp_type_c", ctypes.c_uint8(timestamp_type(stamp).value))
         setattr(self, "timestamp_c", ctypes.c_uint64.from_buffer(bytes(stamp)))
 
@@ -58,7 +60,7 @@ class DataPacket:
     payload: ctypes.Array
 
     def __init__(self, header: DataPacketHeader,
-                 payload: typing.Union[ctypes.Array, PointUnionType]):
+                 payload: typing.Union[ctypes.Array, PointUnionListType]):
         self.header: DataPacketHeader = header
         if isinstance(payload, ctypes.Array):
             self.payload: ctypes.Array = payload

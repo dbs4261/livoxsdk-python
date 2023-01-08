@@ -28,16 +28,18 @@ class TimestampPTP(StructureType):
         ("nanosecond", ctypes.c_uint64),
     )
 
-    @property
+    def __init__(self, precise_timestamp: typing.Optional[PreciseTimestamp] = None, **kwargs):
+        if precise_timestamp is None:
+            super().__init__(**kwargs)
+        else:
+            delta = (precise_timestamp.date_time - _epoch)
+            nanosecond = precise_timestamp.nanoseconds + 1000 * (delta.microseconds +
+                1000 * 1000 * (delta.seconds + 60 * 60 * 24 * delta.days))
+            super().__init__(nanosecond=nanosecond, **kwargs)
+
     def precise_timestamp(self) -> PreciseTimestamp:
         return PreciseTimestamp(_epoch + datetime.timedelta(microseconds=
             self.nanosecond // 1000), self.nanosecond % 1000)
-
-    @precise_timestamp.setter
-    def precise_timestamp(self, timestamp: PreciseTimestamp) -> None:
-        delta = (timestamp.date_time - _epoch)
-        self.nanosecond = timestamp.nanoseconds + 1000 * (delta.microseconds +
-            1000 * 1000 * (delta.seconds + 60 * 60 * 24 * delta.days))
 
 
 assert(ctypes.sizeof(TimestampPTP) == ctypes.sizeof(ctypes.c_uint64))
@@ -56,22 +58,26 @@ class TimestampUTC(StructureType):
         ("microsecond", ctypes.c_uint32),
     )
 
-    @property
+    def __init__(self, precise_timestamp: typing.Optional[PreciseTimestamp] = None, **kwargs):
+        if precise_timestamp is None:
+            super().__init__(**kwargs)
+        else:
+            if precise_timestamp.nanoseconds != 0:
+                livoxsdk.logging_helpers.logger.getChild("TimestampUTC").getChild("set_precise_timestamp").warning(
+                    "TimestampUTC doesnt support nanosecond precision")
+            super().__init__({
+                **kwargs,
+                'year': precise_timestamp.date_time.year,
+                'month': precise_timestamp.date_time.month,
+                'day': precise_timestamp.date_time.day,
+                'hour': precise_timestamp.date_time.hour,
+                'microsecond': precise_timestamp.date_time.microsecond + 1000000 *
+                    (precise_timestamp.date_time.second + 60 * precise_timestamp.date_time.minute)
+            })
+
     def precise_timestamp(self) -> PreciseTimestamp:
         return PreciseTimestamp(datetime.datetime(year=self.year, month=self.month,
             day=self.day, hour=self.hour, microsecond=self.microsecond), 0)
-
-    @precise_timestamp.setter
-    def precise_timestamp(self, timestamp: precise_timestamp) -> None:
-        if timestamp.nanoseconds != 0:
-            livoxsdk.logging_helpers.logger.getChild("TimestampUTC").getChild("set_precise_timestamp").warning(
-                "TimestampUTC doesnt support nanosecond precision")
-        self.year = timestamp.date_time.year
-        self.month = timestamp.date_time.month
-        self.day = timestamp.date_time.day
-        self.hour = timestamp.date_time.hour
-        self.microsecond = timestamp.date_time.microsecond + 1000000 * \
-                           (timestamp.second + 60 * timestamp.date_time.minute)
 
 
 assert(ctypes.sizeof(TimestampUTC) == ctypes.sizeof(ctypes.c_uint64))
@@ -94,7 +100,7 @@ def timestamp_type(timestamp: Timestamp) -> livoxsdk.enums.TimestampType:
         return livoxsdk.enums.TimestampType.Unknown
 
 
-def timestamp_type_from_enum(timestamp_enum: livoxsdk.enums.TimestampType) -> type:
+def timestamp_type_from_enum(timestamp_enum: livoxsdk.enums.TimestampType) -> typing.Type[Timestamp]:
     if timestamp_enum == livoxsdk.enums.TimestampType.NoSync:
         return TimestampNoSync
     elif timestamp_enum == livoxsdk.enums.TimestampType.Ptp:

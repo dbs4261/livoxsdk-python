@@ -31,11 +31,8 @@ PointUnionType = typing.Union[
 
 PointUnionListType = typing.Union[tuple(typing.List[t] for t in PointUnionType.__args__)]
 
-def point_type_from_enum(val: livoxsdk.enums.PointDataType) -> typing.Type[PointUnionType]:
-    raise NotImplementedError
+def point_type_from_enum(val: livoxsdk.enums.PointDataType) -> typing.Type[PointUnionType]: ...
 
-def point_enum_from_type(t: typing.Type[PointUnionType]) -> livoxsdk.enums.PointDataType:
-    raise NotImplementedError
+def point_enum_from_type(t: typing.Type[PointUnionType]) -> livoxsdk.enums.PointDataType: ...
 
-def point_enum_from_point(point: PointUnionType) -> livoxsdk.enums.PointDataType:
-    raise NotImplementedError
+def point_enum_from_point(point: PointUnionType) -> livoxsdk.enums.PointDataType: ...

@@ -10,6 +10,7 @@ from livoxsdk.structs.broadcast_code import BroadcastCode
 class DeviceInfo(StructureType):
     _pack_ = 1
     _mapped_ = (
+        ("type_c", "type"),
         ("state_c", "state"),
         ("feature_c", "feature"),
     )
@@ -18,7 +19,7 @@ class DeviceInfo(StructureType):
         ("handle", ctypes.c_uint8),
         ("slot", ctypes.c_uint8),
         ("id", ctypes.c_uint8),
-        ("type", ctypes.c_uint8),
+        ("type_c", ctypes.c_uint8),
         ("data_port", ctypes.c_uint16),
         ("cmd_port", ctypes.c_uint16),
         ("sensor_port", ctypes.c_uint16),
@@ -28,6 +29,14 @@ class DeviceInfo(StructureType):
         ("status", StatusUnion),
         ("firmware_version", ctypes.c_uint8 * 4)
     ]
+
+    @property
+    def device_type(self) -> livoxsdk.enums.devices.DeviceType:
+        return livoxsdk.enums.devices.DeviceType(getattr(self, "type_c"))
+
+    @device_type.setter
+    def device_type(self, val: livoxsdk.enums.devices.DeviceType) -> None:
+        setattr(self, "type_c", ctypes.c_uint8(val.value))
 
     @property
     def state(self) -> livoxsdk.enums.LidarState:

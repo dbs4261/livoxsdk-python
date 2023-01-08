@@ -1,9 +1,10 @@
 __version__ = "0.0.1"
 
 import typing
+import ctypes
 
 endianness: typing.Literal["little", "big"] = "little"
-Port = typing.NewType("Port", int)
+Port: typing.Annotated[typing.Type["Port"], ctypes.c_uint16] = typing.NewType("Port", int)
 scan_port: typing.Final[Port] = Port(55000)
 data_transmit_port: typing.Final[Port] = Port(65000)
 control_receive_port: typing.Final[Port] = Port(65000)
@@ -16,6 +17,7 @@ from . import errors
 from . import crc
 from . import enums
 from . import utilities
+from .utilities import annotations
 from .binary_serializable import BinarySerializable, BinaryMappable
 from .atomic_counter import AtomicCounter
 from . import structs

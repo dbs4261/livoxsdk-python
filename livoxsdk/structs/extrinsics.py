@@ -18,9 +18,9 @@ class Extrinsics(StructureType):
         ("yaw", ctypes.c_float),
     )
     _defaults_ = {
-        "x": 0,
-        "y": 0,
-        "z": 0,
+        "x_c": 0,
+        "y_c": 0,
+        "z_c": 0,
         "roll": 0.0,
         "pitch": 0.0,
         "yaw": 0.0,

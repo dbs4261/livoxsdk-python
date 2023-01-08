@@ -10,17 +10,13 @@ class HeartbeatResponsePayload(StructureType):
     error_union: livoxsdk.structs.status.StatusUnion
 
     @property
-    def state(self) -> livoxsdk.enums.devices.LidarState:
-        raise NotImplementedError
+    def state(self) -> livoxsdk.enums.devices.LidarState: ...
 
     @state.setter
-    def state(self, val: livoxsdk.enums.devices.LidarState) -> None:
-        raise NotImplementedError
+    def state(self, val: livoxsdk.enums.devices.LidarState) -> None: ...
 
     @property
-    def feature(self) -> livoxsdk.enums.devices.LidarFeature:
-        raise NotImplementedError
+    def feature(self) -> livoxsdk.enums.devices.LidarFeature: ...
 
     @feature.setter
-    def feature(self, val: livoxsdk.enums.devices.LidarFeature) -> None:
-        raise NotImplementedError
+    def feature(self, val: livoxsdk.enums.devices.LidarFeature) -> None: ...

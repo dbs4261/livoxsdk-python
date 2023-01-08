@@ -3,7 +3,7 @@ import typing
 
 import livoxsdk
 
-BaseStructureType: typing.Type[typing.Union[ctypes.Structure, livoxsdk.BinarySerializable, typing.SupportsBytes]] =\
+BaseStructureType: typing.Type[ctypes.Structure] = \
     ctypes.LittleEndianStructure if livoxsdk.endianness == "little" else ctypes.BigEndianStructure
 
 
@@ -16,7 +16,7 @@ class StructureType(BaseStructureType):
         values.update(kwargs)
         super().__init__(**values)
 
-    def __str__(self):
+    def __str__(self) -> str:
         field_replacements = {a: b for a, b in getattr(type(self), "_mapped_", ())}
         fields = [f[0] for f in getattr(type(self), "_fields_")]
         fields = [field_replacements[f] if f in field_replacements else f for f in fields]

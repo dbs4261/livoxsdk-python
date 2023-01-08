@@ -2,6 +2,7 @@ import ctypes
 import typing
 
 from livoxsdk.structs.structure_type import StructureType
+# noinspection PyUnresolvedReferences
 from livoxsdk.structs.points.return_tag import _add_return_tag_bitfield
 from livoxsdk.structs.points.return_iterator import ReturnIterator
 
