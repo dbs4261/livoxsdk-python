@@ -22,7 +22,7 @@ class ReturnIterator:
             if self._num_returns == 1:
                 return CartesianReturn(x=self._obj.x, y=self._obj.y, z=self._obj.z,
                                        reflectivity=self._obj.reflectivity,
-                                       tag=(self._obj.tag if hasattr(self._obj, "tag_bitfield") else ReturnTagBitfield()))
+                                       tag=(self._obj.tag_bitfield if hasattr(self._obj, "tag_bitfield") else ReturnTagBitfield()))
             else:
                 return CartesianReturn(x=getattr(self._obj, f"x{self._index}"),
                                        y=getattr(self._obj, f"y{self._index}"),
@@ -33,7 +33,7 @@ class ReturnIterator:
             if self._num_returns == 1:
                 return SphericalReturn(theta=self._obj.theta, phi=self._obj.phi, depth=self._obj.depth,
                                        reflectivity=self._obj.reflectivity,
-                                       tag=(self._obj.tag if hasattr(self._obj, "tag_bitfield") else ReturnTagBitfield()))
+                                       tag=(self._obj.tag_bitfield if hasattr(self._obj, "tag_bitfield") else ReturnTagBitfield()))
             else:
                 return SphericalReturn(theta=self._obj.theta, phi=self._obj.phi,
                                        depth=getattr(self._obj, f"depth{self._index}"),
