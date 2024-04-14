@@ -106,9 +106,8 @@ class ControlPacket:
         self.header.command_type = val
 
     @property
-    def length(self) -> ctypes.c_uint16:
-        return ctypes.c_uint16(ctypes.sizeof(self.header) +
-                len(self.raw_payload) + ctypes.sizeof(ctypes.c_uint32))
+    def length(self) -> int:
+        return ctypes.sizeof(self.header) + len(self.raw_payload) + ctypes.sizeof(ctypes.c_uint32)
 
     @property
     def packet_crc(self) -> int:

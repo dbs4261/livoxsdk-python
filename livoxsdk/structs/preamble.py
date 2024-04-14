@@ -42,10 +42,11 @@ class Preamble(StructureType):
 
     @property
     def length(self) -> int:
-        return getattr(self, "_length").value
+        return getattr(self, "_length")
 
     @length.setter
     def length(self, val: typing.Union[int, ctypes.c_uint16]) -> None:
+        assert(isinstance(val, ctypes.c_uint16) or (val >= 0 and val.bit_length() <=16))
         setattr(self, "_length", val)
 
     def crc(self) -> int:
